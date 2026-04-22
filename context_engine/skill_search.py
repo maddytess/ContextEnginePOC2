@@ -1,6 +1,4 @@
-import asyncio
-from .db import get_db
-from .embeddings import embed_text
+from .asset_store import Collection, Filters, SurrealAssetStore
 from .models import SkillSearchResult
 
 # Phase 2C semantics: 1 result → narrow, N results → broad, 0 → miss
@@ -13,44 +11,28 @@ async def search_skills(
     tenant_id: str | None = None,
     top_k: int = 5,
 ) -> list[SkillSearchResult]:
-    query_embedding = embed_text(prompt)
+    store = SurrealAssetStore()
 
-    # POC: full table scan — correct at 3-record scale, no index needed.
-    # Production equivalent using the HNSW index (swap in when collection grows):
-    #
-    #   SELECT skill_id, owner_agent_id, domain,
-    #          vector::similarity::cosine(embedding, $vec) AS confidence
-    #   FROM escher_skills_global
-    #   WHERE status = 'active'
-    #         AND embedding <|{top_k},40|> $vec   -- HNSW KNN: K neighbours, EF=40 (beam width)
-    #   ORDER BY confidence DESC
-    #   LIMIT {top_k}
-    #
-    # The <|K,EF|> operator uses the HNSW index defined on the embedding field;
-    # it never scans the full table. EF=40 is a typical recall/speed tradeoff —
-    # raise it (e.g. 80) for higher recall at the cost of more graph traversal.
-    query = f"""
-        SELECT skill_id, owner_agent_id, domain,
-               vector::similarity::cosine(embedding, $vec) AS confidence
-        FROM escher_skills_global
-        WHERE status = 'active'
-        ORDER BY confidence DESC
-        LIMIT {top_k}
-    """
+    # CE business logic owns tenancy: fire tenant + global in parallel, tenant wins.
+    # POC: global only (tenant_id=None means no tenant filter applied yet).
+    filters = Filters({"status": "active"})
 
-    async with get_db() as db:
-        results = await db.query(query, {"vec": query_embedding})
+    scored = await store.find_by_text(
+        Collection.Skill,
+        prompt,
+        filters,
+        limit=top_k,
+        min_score=BROAD_THRESHOLD,
+    )
 
-    raw = results if results else []
     return [
         SkillSearchResult(
-            skill_id=r["skill_id"],
-            owner_agent_id=r["owner_agent_id"],
-            domain=r["domain"],
-            confidence=round(float(r["confidence"]), 4),
+            skill_id=s.document.data["skill_id"],
+            owner_agent_id=s.document.data["owner_agent_id"],
+            domain=s.document.data["domain"],
+            confidence=round(s.score, 4),
         )
-        for r in raw
-        if float(r["confidence"]) >= BROAD_THRESHOLD
+        for s in scored
     ]
 
 
@@ -64,6 +46,8 @@ def classify_results(results: list[SkillSearchResult]) -> str:
 
 
 if __name__ == "__main__":
+    import asyncio
+
     async def demo():
         queries = [
             "show me my unsecured EC2 instances",
