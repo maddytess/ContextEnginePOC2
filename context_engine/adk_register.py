@@ -1,4 +1,4 @@
-from .asset_store import Collection, Document, SurrealAssetStore
+from asset_store import Collection, Document, SurrealAssetStore
 from .models import SkillRecord
 
 

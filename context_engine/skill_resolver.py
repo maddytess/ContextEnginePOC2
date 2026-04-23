@@ -1,4 +1,4 @@
-from .asset_store import Collection, Direction, EdgeType, Filters, SurrealAssetStore
+from asset_store import Collection, Direction, EdgeType, Filters, SurrealAssetStore
 from .models import (
     ResolveSkillRequest,
     ResolveSkillResponse,

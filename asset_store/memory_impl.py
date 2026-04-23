@@ -1,6 +1,6 @@
 from typing import Optional
 
-from context_engine.embeddings import embed_text
+from .embeddings import embed_text
 
 from .interface import (
     AssetStore, Collection, Direction, Document, EdgeType,

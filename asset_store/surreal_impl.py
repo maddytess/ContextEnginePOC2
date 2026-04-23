@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
-from context_engine.db import get_db
-from context_engine.embeddings import embed_text
+from .db import get_db
+from .embeddings import embed_text
 
 from .interface import (
     AssetStore, Collection, Direction, Document, EdgeType,

@@ -1,5 +1,5 @@
 import asyncio
-from .db import get_db
+from asset_store.db import get_db
 
 DDL = """
 DEFINE TABLE IF NOT EXISTS escher_skills_global SCHEMAFULL;
@@ -24,6 +24,17 @@ DEFINE FIELD IF NOT EXISTS tool_affinity                              ON escher_
 DEFINE FIELD IF NOT EXISTS tool_affinity.allowed_tool_classes         ON escher_skills_global TYPE array<string>;
 DEFINE FIELD IF NOT EXISTS tool_affinity.preferred_tool_tags          ON escher_skills_global TYPE array<string>;
 DEFINE FIELD IF NOT EXISTS tool_affinity.execution_locations          ON escher_skills_global TYPE array<string>;
+
+DEFINE FIELD IF NOT EXISTS execution_plan                              ON escher_skills_global TYPE object;
+DEFINE FIELD IF NOT EXISTS execution_plan.on_partial_failure           ON escher_skills_global TYPE string;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps                        ON escher_skills_global TYPE array;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*]                     ON escher_skills_global TYPE object;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*].step_id             ON escher_skills_global TYPE string;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*].context_type        ON escher_skills_global TYPE string;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*].tool_class          ON escher_skills_global TYPE string;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*].depends_on          ON escher_skills_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*].required            ON escher_skills_global TYPE bool;
+DEFINE FIELD IF NOT EXISTS execution_plan.steps[*].on_failure          ON escher_skills_global TYPE string;
 
 DEFINE FIELD IF NOT EXISTS artifact_effects            ON escher_skills_global TYPE object;
 DEFINE FIELD IF NOT EXISTS artifact_effects.can_create ON escher_skills_global TYPE array<string>;

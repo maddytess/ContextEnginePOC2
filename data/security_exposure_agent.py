@@ -1,5 +1,6 @@
 from context_engine.models import (
-    ActionSemantics, ArtifactEffects, Evidence, Safety, SkillRecord, ToolAffinity,
+    ActionSemantics, ArtifactEffects, Evidence, ExecutionPlan, ExecutionStep,
+    Safety, SkillRecord, ToolAffinity,
 )
 
 _TOOL_AFFINITY = ToolAffinity(
@@ -18,6 +19,37 @@ _ACTION_SEMANTICS = ActionSemantics(
 _SAFETY = Safety(safety_class="advisory", requires_human_review_for=[])
 
 _EVIDENCE = Evidence(emits_rationale=True, emits_confidence=True)
+
+# Shared execution plan for all three exposure skills — same context builder drives each
+_EXPOSURE_PLAN = ExecutionPlan(
+    steps=[
+        ExecutionStep(
+            step_id="fetch_exposure_inventory",
+            context_type="public_exposure_inventory",
+            tool_class="inventory_read",
+            depends_on=[],
+            required=True,
+            on_failure="stop",
+        ),
+        ExecutionStep(
+            step_id="fetch_resource_scope",
+            context_type="resource_scope_summary",
+            tool_class="inventory_read",
+            depends_on=["fetch_exposure_inventory"],
+            required=False,
+            on_failure="skip",
+        ),
+        ExecutionStep(
+            step_id="fetch_environment_scope",
+            context_type="environment_scope",
+            tool_class="inventory_read",
+            depends_on=[],
+            required=False,
+            on_failure="skip",
+        ),
+    ],
+    on_partial_failure="continue",
+)
 
 SKILLS = [
     SkillRecord(
@@ -56,6 +88,7 @@ SKILLS = [
             "environment_scope",
         ],
         tool_affinity=_TOOL_AFFINITY,
+        execution_plan=_EXPOSURE_PLAN,
         artifact_effects=ArtifactEffects(
             can_create=["ExposureFinding"],
             can_update=[],
@@ -101,6 +134,7 @@ SKILLS = [
             "environment_scope",
         ],
         tool_affinity=_TOOL_AFFINITY,
+        execution_plan=_EXPOSURE_PLAN,
         artifact_effects=ArtifactEffects(
             can_create=["ExposureFinding"],
             can_update=[],
@@ -144,6 +178,27 @@ SKILLS = [
             "resource_scope_summary",
         ],
         tool_affinity=_TOOL_AFFINITY,
+        execution_plan=ExecutionPlan(
+            steps=[
+                ExecutionStep(
+                    step_id="fetch_exposure_inventory",
+                    context_type="public_exposure_inventory",
+                    tool_class="inventory_read",
+                    depends_on=[],
+                    required=True,
+                    on_failure="stop",
+                ),
+                ExecutionStep(
+                    step_id="fetch_resource_scope",
+                    context_type="resource_scope_summary",
+                    tool_class="inventory_read",
+                    depends_on=["fetch_exposure_inventory"],
+                    required=False,
+                    on_failure="skip",
+                ),
+            ],
+            on_partial_failure="continue",
+        ),
         artifact_effects=ArtifactEffects(
             can_create=["ExposureRankReport"],
             can_update=["ExposureFinding"],

@@ -33,6 +33,20 @@ class Evidence(BaseModel):
     emits_confidence: bool = True
 
 
+class ExecutionStep(BaseModel):
+    step_id: str
+    context_type: str
+    tool_class: str
+    depends_on: list[str] = []
+    required: bool = True
+    on_failure: str = "stop"
+
+
+class ExecutionPlan(BaseModel):
+    steps: list[ExecutionStep] = []
+    on_partial_failure: str = "continue"
+
+
 # --- Registration model (written by ADK, stored in Skill collection) ---
 
 class SkillRecord(BaseModel):
@@ -53,6 +67,7 @@ class SkillRecord(BaseModel):
     context_builder_ids: list[str]
     supported_context_types: list[str]
     tool_affinity: ToolAffinity = ToolAffinity()
+    execution_plan: ExecutionPlan = ExecutionPlan()
     artifact_effects: ArtifactEffects = ArtifactEffects()
     action_semantics: ActionSemantics = ActionSemantics()
     safety: Safety = Safety()
@@ -81,6 +96,7 @@ class SkillManifest(BaseModel):
     skill_id: str
     display_name: str
     owner_agent_id: str
+    capability_id: str
     domain: str
     tier: str
     purpose: str
@@ -90,6 +106,7 @@ class SkillManifest(BaseModel):
     context_builder_ids: list[str]
     supported_context_types: list[str]
     tool_affinity: ToolAffinity = ToolAffinity()
+    execution_plan: ExecutionPlan = ExecutionPlan()
     output_type: str
     output_schema_ref: Optional[str] = None
     artifact_effects: ArtifactEffects = ArtifactEffects()

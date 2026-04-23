@@ -51,19 +51,32 @@ async def main():
         )
         resolved = await handle_resolve_skill(request)
         s = resolved.skill
-        print(f"  skill_id       : {s.skill_id}")
-        print(f"  display_name   : {s.display_name}")
-        print(f"  domain/tier    : {s.domain} / {s.tier}  source={s.source}")
-        print(f"  purpose        : {s.purpose}")
-        print(f"  output_type    : {s.output_type}")
-        print(f"  capabilities   :")
+        print(f"  skill_id            : {s.skill_id}")
+        print(f"  display_name        : {s.display_name}")
+        print(f"  owner_agent_id      : {s.owner_agent_id}")
+        print(f"  capability_id       : {s.capability_id}")
+        print(f"  domain / tier       : {s.domain} / {s.tier}  source={s.source}")
+        print(f"  purpose             : {s.purpose}")
+        print(f"  description         : {s.description}")
+        print(f"  capabilities        :")
         for c in s.capabilities:
             print(f"    - {c}")
-        print(f"  tool_affinity  : classes={s.tool_affinity.allowed_tool_classes}  locations={s.tool_affinity.execution_locations}")
-        print(f"  action_semantics: can_request_execution={s.action_semantics.can_request_execution}")
-        print(f"  safety         : {s.safety.safety_class}")
-        print(f"  evidence       : rationale={s.evidence.emits_rationale}  confidence={s.evidence.emits_confidence}")
-        print(f"  version        : {s.version}")
+        print(f"  context_descriptions:")
+        for d in s.context_descriptions:
+            print(f"    - {d}")
+        print(f"  context_builder_ids : {s.context_builder_ids}")
+        print(f"  supported_context_types: {s.supported_context_types}")
+        print(f"  tool_affinity       : classes={s.tool_affinity.allowed_tool_classes}  tags={s.tool_affinity.preferred_tool_tags}  locations={s.tool_affinity.execution_locations}")
+        print(f"  execution_plan      : on_partial_failure={s.execution_plan.on_partial_failure}")
+        for step in s.execution_plan.steps:
+            print(f"    step {step.step_id}: context={step.context_type}  tool={step.tool_class}  required={step.required}  on_failure={step.on_failure}  depends_on={step.depends_on}")
+        print(f"  output_type         : {s.output_type}")
+        print(f"  output_schema_ref   : {s.output_schema_ref}")
+        print(f"  artifact_effects    : create={s.artifact_effects.can_create}  update={s.artifact_effects.can_update}  enrich={s.artifact_effects.can_enrich}")
+        print(f"  action_semantics    : exec={s.action_semantics.can_request_execution}  plan_frags={s.action_semantics.can_generate_plan_fragments}  bundle={s.action_semantics.can_generate_bundle_hints}  playbook={s.action_semantics.can_generate_playbook_candidates}")
+        print(f"  safety              : class={s.safety.safety_class}  review_for={s.safety.requires_human_review_for}")
+        print(f"  evidence            : rationale={s.evidence.emits_rationale}  confidence={s.evidence.emits_confidence}")
+        print(f"  version             : {s.version}")
 
 
 if __name__ == "__main__":
