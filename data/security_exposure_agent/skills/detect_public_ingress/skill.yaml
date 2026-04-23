@@ -1,0 +1,92 @@
+skill_id: security.detect_public_ingress
+display_name: Detect Public Ingress
+owner_agent_id: domain.security.exposure
+capability_id: detect_public_exposure
+domain: security
+tier: basic
+status: active
+tenant_id: null
+
+purpose: Detect public ingress patterns and generate exposure findings.
+description: >
+  Finds publicly accessible EC2 instances, open security groups,
+  internet-facing load balancers, and public S3 buckets. Use this for
+  questions like: which EC2 instances are unsecured, what security groups
+  have open ingress, show me public-facing resources, find exposed
+  infrastructure in my AWS account.
+
+capabilities:
+  - List EC2 instances with public IP addresses
+  - Find security groups with unrestricted ingress rules (0.0.0.0/0 or ::/0)
+  - Identify internet-facing load balancers
+  - Detect public S3 buckets via ACL and policy analysis
+
+context_descriptions:
+  - Public exposure inventory across EC2, security groups, load balancers, and S3
+  - Resource scope and environment metadata for the account being analysed
+
+output_type: finding
+output_schema_ref: schemas/security/public_ingress_finding.json
+
+context_builder_ids:
+  - security.public_exposure_context
+
+supported_context_types:
+  - public_exposure_inventory
+  - resource_scope_summary
+  - environment_scope
+
+tool_affinity:
+  allowed_tool_classes:
+    - inventory_read
+  preferred_tool_tags:
+    - aws
+    - security
+  execution_locations:
+    - client
+
+execution_plan:
+  steps:
+    - step_id: fetch_exposure_inventory
+      context_type: public_exposure_inventory
+      tool_class: inventory_read
+      depends_on: []
+      required: true
+      on_failure: stop
+
+    - step_id: fetch_resource_scope
+      context_type: resource_scope_summary
+      tool_class: inventory_read
+      depends_on: [fetch_exposure_inventory]
+      required: false
+      on_failure: skip
+
+    - step_id: fetch_environment_scope
+      context_type: environment_scope
+      tool_class: inventory_read
+      depends_on: []
+      required: false
+      on_failure: skip
+
+  on_partial_failure: continue
+
+artifact_effects:
+  can_create: [ExposureFinding]
+  can_update: []
+  can_enrich: [ResourceInventory]
+
+action_semantics:
+  can_request_execution: false
+  can_generate_plan_fragments: true
+  can_generate_bundle_hints: true
+  can_generate_playbook_candidates: false
+
+safety:
+  safety_class: advisory
+  requires_human_review_for: []
+
+evidence:
+  emits_rationale: true
+  emits_confidence: true
+
+version: 1.0.0

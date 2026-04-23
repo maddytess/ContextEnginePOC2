@@ -2,6 +2,7 @@ import asyncio
 from asset_store.db import get_db
 
 DDL = """
+-- ── Skill collection ──────────────────────────────────────────────────────────
 DEFINE TABLE IF NOT EXISTS escher_skills_global SCHEMAFULL;
 
 DEFINE FIELD IF NOT EXISTS skill_id            ON escher_skills_global TYPE string;
@@ -60,13 +61,43 @@ DEFINE FIELD IF NOT EXISTS embedding               ON escher_skills_global TYPE 
 DEFINE INDEX IF NOT EXISTS skill_id_idx ON escher_skills_global FIELDS skill_id UNIQUE;
 DEFINE INDEX IF NOT EXISTS skill_embedding_idx ON escher_skills_global
     FIELDS embedding HNSW DIMENSION 768 DIST COSINE TYPE F32;
+
+-- ── Agent Registry ─────────────────────────────────────────────────────────────
+DEFINE TABLE IF NOT EXISTS escher_agent_registry_global SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS agent_id         ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS name             ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS display_name     ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS agent_type       ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS status           ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS owner_team       ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS owner_contact    ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS purpose          ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS description      ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS domain           ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS product_scope    ON escher_agent_registry_global TYPE string;
+DEFINE FIELD IF NOT EXISTS tier_support     ON escher_agent_registry_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS capabilities     ON escher_agent_registry_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS exported_skill_ids ON escher_agent_registry_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS hidden_skill_ids   ON escher_agent_registry_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS version          ON escher_agent_registry_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS maturity         ON escher_agent_registry_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS tenant_id        ON escher_agent_registry_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS embedding        ON escher_agent_registry_global TYPE array<float>;
+
+DEFINE INDEX IF NOT EXISTS agent_id_idx ON escher_agent_registry_global FIELDS agent_id UNIQUE;
+DEFINE INDEX IF NOT EXISTS agent_embedding_idx ON escher_agent_registry_global
+    FIELDS embedding HNSW DIMENSION 768 DIST COSINE TYPE F32;
+
+-- ── Graph nodes (SCHEMALESS — typed by node_type field) ───────────────────────
+DEFINE TABLE IF NOT EXISTS escher_nodes SCHEMALESS;
 """
 
 
 async def setup_schema():
     async with get_db() as db:
         await db.query(DDL)
-        print("Schema ready: escher_skills_global table + HNSW index defined.")
+        print("Schema ready: escher_skills_global, escher_agent_registry_global, escher_nodes defined.")
 
 
 if __name__ == "__main__":

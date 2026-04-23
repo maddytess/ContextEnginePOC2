@@ -1,0 +1,143 @@
+schema_version: 1
+
+agent_id: domain.security.exposure
+name: exposure
+display_name: Security Exposure Agent
+agent_type: domain
+status: active
+owner:
+  team: security-intelligence
+  contact: security-intelligence@tessell.com
+purpose: Detect and explain basic public exposure risks.
+description: >
+  Provides public exposure analysis across network ingress, public storage,
+  and snapshot sharing. Handles questions about open ports, public S3 buckets,
+  snapshot sharing, and basic security posture. Produces findings and
+  enriches evidence. Does not mutate resources directly — remediation
+  is handled via owned playbooks.
+
+classification:
+  domain: security
+  product_scope: horizontal
+  tier_support: [basic, advanced]
+
+capabilities:
+  - detect public ingress and network exposure risks
+  - detect public storage access and open S3 buckets
+  - rank and prioritize exposure findings by severity
+  - suggest basic remediation paths for exposure risks
+
+skills:
+  exported_skill_ids:
+    - security.detect_public_ingress
+    - security.detect_public_storage_access
+    - security.rank_basic_exposure_findings
+  hidden_skill_ids: []
+
+playbooks:
+  can_trigger: true
+  can_generate_candidate: true
+  owned_playbook_ids:
+    - security.remediate_public_exposure
+    - security.lock_public_storage
+
+  context:
+    context_descriptions:
+      - "security group config — ingress rules before write execution"
+      - "public exposure inventory — resources targeted for remediation"
+    supported_context_types:
+      - public_exposure_inventory
+      - security_group_config
+    declared_context_builders:
+      - security.public_exposure_context
+
+  target_language: python
+
+  parameter_schema:
+    mandatory:
+      - name: region
+        type: string
+        description: AWS region to target
+        example: us-east-1
+      - name: profile
+        type: string
+        description: AWS CLI profile
+        example: tessell_prod_infra
+    optional:
+      - name: dry_run
+        type: boolean
+        description: Run without making changes
+        default: false
+
+  approach_hints:
+    - prefer least-privilege remediation
+    - avoid broad policy changes
+    - prefer targeted resource-level fixes
+
+  rollback_support: true
+  execution_timeout: 600
+
+context:
+  context_descriptions:
+    - "public exposure inventory — security groups, load balancers, internet gateways"
+    - "resource scope summary — EC2, S3, RDS configurations and metadata"
+    - "environment scope — active regions, accounts, tags"
+  supported_context_types:
+    - public_exposure_inventory
+    - resource_scope_summary
+    - environment_scope
+  declared_context_builders:
+    - security.public_exposure_context
+
+tool_access:
+  readonly_tools:
+    allowed_tool_classes:
+      - inventory_read
+      - configuration_read
+    preferred_tool_tags:
+      - security
+      - aws
+    execution_locations: [client, hybrid]
+  write_tools:
+    allowed_tool_classes:
+      - action_write
+    preferred_tool_tags:
+      - security
+      - aws
+    requires_human_review: true
+
+domain_knowledge:
+  lens:
+    - security_exposure_philosophy.md
+    - cspm_framework_reference.md
+  expert_graph:
+    - security_control_relationships.yaml
+
+artifacts:
+  can_read: [estate_view, report, finding]
+  can_create: [finding, report]
+  can_update: [plan]
+  can_enrich: [evidence]
+
+policy:
+  safety_class: advisory
+  requires_human_review_for:
+    - plan_creation
+    - playbook_execution
+  prohibited_actions:
+    - direct_destructive_delete
+
+composition:
+  usable_in_profiles:
+    - hero_admin
+    - cspm_deep
+  compatible_agents:
+    - domain.security.remediation_planning
+    - domain.compliance.gap_analysis
+  conflicts_with_agents: []
+
+quality:
+  maturity: beta
+versioning:
+  version: 0.1.0
+  changelog_url: null

@@ -1,9 +1,10 @@
 import asyncio
+import sys
+
 from context_engine.setup_schema import setup_schema
-from context_engine.adk_register import register_skills
 from context_engine.skill_resolver import classify_results, handle_resolve_skill
 from context_engine.models import ResolveSkillRequest
-from data.security_exposure_agent import SKILLS
+from adk import load_package, validate_package, register_package
 
 SAMPLE_QUERIES = [
     "show me my unsecured EC2 instances",
@@ -20,9 +21,22 @@ async def main():
     print("1. Setting up SurrealDB schema...")
     await setup_schema()
 
-    print("\n2. Registering Security Exposure Agent skills...")
-    await register_skills(SKILLS)
-    print(f"   {len(SKILLS)} skills registered.")
+    print("\n2. Loading and registering Security Exposure Agent via ADK...")
+    manifest, skills = load_package("data/security_exposure_agent")
+    result = validate_package(manifest, skills)
+    if result.warnings:
+        for w in result.warnings:
+            print(f"   WARN: {w}")
+    if not result.ok():
+        for e in result.errors:
+            print(f"   ERROR: {e}")
+        print("ADK validation failed — aborting.")
+        sys.exit(1)
+
+    reg = await register_package(manifest, skills)
+    print(f"   agent registered : {reg.agent_id}")
+    for sid in reg.skill_ids:
+        print(f"   skill registered : {sid}")
 
     print("\n3. Phase 2C — /resolve/skill mode=search\n")
     top_hit = None

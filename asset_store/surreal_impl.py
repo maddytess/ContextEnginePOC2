@@ -11,16 +11,21 @@ from .interface import (
 # SurrealDB table per collection — the only place in the CE that knows table names
 _TABLE: dict[Collection, str] = {
     Collection.Skill: "escher_skills_global",
+    Collection.Agent: "escher_agent_registry_global",
 }
 
 # Fields joined for embedding at write time, per asset_store.md §9.3
 _EMBED_FIELDS: dict[Collection, list[str]] = {
     Collection.Skill: ["purpose", "description", "display_name", "capability_id"],
+    Collection.Agent: ["capabilities"],
     Collection.Playbook: ["trigger_conditions", "name"],
     Collection.DomainLens: ["title", "content"],
     Collection.CloudKnowledge: ["title", "content"],
     Collection.Tool: ["purpose", "tool_class"],
 }
+
+# For Agent, capabilities is a list — join it before embedding
+_LIST_JOIN_FIELDS: set[Collection] = {Collection.Agent}
 
 
 def _table(collection: Collection) -> str:
@@ -121,7 +126,14 @@ class SurrealAssetStore(AssetStore):
         # AssetStore generates and stores the embedding — caller passes plain data, never a vector
         if collection in _EMBED_FIELDS:
             fields = _EMBED_FIELDS[collection]
-            text = " ".join(str(data.get(f, "")) for f in fields)
+            parts = []
+            for f in fields:
+                val = data.get(f, "")
+                if isinstance(val, list):
+                    parts.append(" ".join(str(v) for v in val))
+                else:
+                    parts.append(str(val))
+            text = " ".join(parts)
             data["embedding"] = embed_text(text)
 
         async with get_db() as db:
@@ -165,13 +177,32 @@ class SurrealAssetStore(AssetStore):
     # --- Graph write ---
 
     async def save_node(self, node: Node) -> str:
-        raise NotImplementedError("Graph write not yet implemented in POC")
+        data = {"id": node.id, "node_type": node.node_type, **node.properties}
+        async with get_db() as db:
+            result = await db.upsert(f"escher_nodes:`{node.id}`", data)
+        if isinstance(result, str) and result.startswith("Could"):
+            raise RuntimeError(f"SurrealDB node upsert failed for {node.id}: {result}")
+        return node.id
 
     async def save_edge(self, from_id: str, to_id: str, edge_type: EdgeType) -> None:
-        raise NotImplementedError("Graph write not yet implemented in POC")
+        # RELATE creates a directed graph edge in SurrealDB
+        query = (
+            f"RELATE escher_nodes:`{from_id}`->{edge_type.value}->escher_nodes:`{to_id}`"
+            f" CONTENT {{ from_id: '{from_id}', to_id: '{to_id}' }}"
+        )
+        async with get_db() as db:
+            result = await db.query(query)
+        if isinstance(result, str) and result.startswith("Could"):
+            raise RuntimeError(f"SurrealDB RELATE failed {from_id}->{to_id}: {result}")
 
     async def delete_node(self, id: str) -> None:
-        raise NotImplementedError("Graph write not yet implemented in POC")
+        async with get_db() as db:
+            await db.query(f"DELETE escher_nodes:`{id}`")
 
     async def delete_edge(self, from_id: str, to_id: str, edge_type: EdgeType) -> None:
-        raise NotImplementedError("Graph write not yet implemented in POC")
+        query = (
+            f"DELETE escher_nodes:`{from_id}`->{edge_type.value} "
+            f"WHERE out = escher_nodes:`{to_id}`"
+        )
+        async with get_db() as db:
+            await db.query(query)
