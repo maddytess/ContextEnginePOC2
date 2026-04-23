@@ -1,7 +1,23 @@
-from context_engine.models import SkillRecord
+from context_engine.models import (
+    ActionSemantics, ArtifactEffects, Evidence, Safety, SkillRecord, ToolAffinity,
+)
 
-# Security Exposure Agent — 3 skills from agents.yaml.md Full Example
-# Embedding text per adk.md §6.1: purpose + description + display_name + capability_id
+_TOOL_AFFINITY = ToolAffinity(
+    allowed_tool_classes=["cloud_read"],
+    preferred_tool_tags=["aws", "security"],
+    execution_locations=["client"],
+)
+
+_ACTION_SEMANTICS = ActionSemantics(
+    can_request_execution=False,
+    can_generate_plan_fragments=True,
+    can_generate_bundle_hints=True,
+    can_generate_playbook_candidates=False,
+)
+
+_SAFETY = Safety(safety_class="advisory", requires_human_review_for=[])
+
+_EVIDENCE = Evidence(emits_rationale=True, emits_confidence=True)
 
 SKILLS = [
     SkillRecord(
@@ -21,13 +37,34 @@ SKILLS = [
             "have open ingress, show me public-facing resources, find exposed "
             "infrastructure in my AWS account."
         ),
+        capabilities=[
+            "List EC2 instances with public IP addresses",
+            "Find security groups with unrestricted ingress rules (0.0.0.0/0 or ::/0)",
+            "Identify internet-facing load balancers",
+            "Detect public S3 buckets via ACL and policy analysis",
+        ],
+        context_descriptions=[
+            "Public exposure inventory across EC2, security groups, load balancers, and S3",
+            "Resource scope and environment metadata for the account being analysed",
+        ],
         output_type="finding",
+        output_schema_ref="schemas/security/public_ingress_finding.json",
         context_builder_ids=["security.public_exposure_context"],
         supported_context_types=[
             "public_exposure_inventory",
             "resource_scope_summary",
             "environment_scope",
         ],
+        tool_affinity=_TOOL_AFFINITY,
+        artifact_effects=ArtifactEffects(
+            can_create=["ExposureFinding"],
+            can_update=[],
+            can_enrich=["ResourceInventory"],
+        ),
+        action_semantics=_ACTION_SEMANTICS,
+        safety=_SAFETY,
+        evidence=_EVIDENCE,
+        version="1.0.0",
     ),
     SkillRecord(
         skill_id="security.detect_public_storage_access",
@@ -46,13 +83,33 @@ SKILLS = [
             "which buckets have no access control, list publicly readable storage "
             "in my AWS account."
         ),
+        capabilities=[
+            "List S3 buckets with Block Public Access disabled",
+            "Detect bucket policies that grant public read or write",
+            "Find buckets with ACLs that expose objects to AllUsers or AuthenticatedUsers",
+        ],
+        context_descriptions=[
+            "S3 bucket inventory with public access settings and policy analysis",
+            "Resource scope and environment metadata for the account being analysed",
+        ],
         output_type="finding",
+        output_schema_ref="schemas/security/public_storage_finding.json",
         context_builder_ids=["security.public_exposure_context"],
         supported_context_types=[
             "public_exposure_inventory",
             "resource_scope_summary",
             "environment_scope",
         ],
+        tool_affinity=_TOOL_AFFINITY,
+        artifact_effects=ArtifactEffects(
+            can_create=["ExposureFinding"],
+            can_update=[],
+            can_enrich=["StorageInventory"],
+        ),
+        action_semantics=_ACTION_SEMANTICS,
+        safety=_SAFETY,
+        evidence=_EVIDENCE,
+        version="1.0.0",
     ),
     SkillRecord(
         skill_id="security.rank_basic_exposure_findings",
@@ -70,11 +127,31 @@ SKILLS = [
             "rank my security findings, prioritize what to fix first, show me the "
             "highest risk exposures in my account, what should I remediate first."
         ),
+        capabilities=[
+            "Score exposure findings by severity (critical, high, medium, low)",
+            "Rank findings by combined risk score and estimated business impact",
+            "Produce a prioritized remediation order with rationale per finding",
+        ],
+        context_descriptions=[
+            "Set of exposure findings produced by prior detect skills",
+            "Resource scope and environment metadata for weighting business impact",
+        ],
         output_type="report",
+        output_schema_ref="schemas/security/exposure_rank_report.json",
         context_builder_ids=["security.public_exposure_context"],
         supported_context_types=[
             "public_exposure_inventory",
             "resource_scope_summary",
         ],
+        tool_affinity=_TOOL_AFFINITY,
+        artifact_effects=ArtifactEffects(
+            can_create=["ExposureRankReport"],
+            can_update=["ExposureFinding"],
+            can_enrich=[],
+        ),
+        action_semantics=_ACTION_SEMANTICS,
+        safety=_SAFETY,
+        evidence=_EVIDENCE,
+        version="1.0.0",
     ),
 ]

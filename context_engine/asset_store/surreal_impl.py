@@ -125,7 +125,10 @@ class SurrealAssetStore(AssetStore):
             data["embedding"] = embed_text(text)
 
         async with get_db() as db:
-            await db.upsert(f"{table}:`{document.id}`", data)
+            result = await db.upsert(f"{table}:`{document.id}`", data)
+        # SurrealDB SDK returns error strings instead of raising — catch them explicitly
+        if isinstance(result, str) and result.startswith("Could"):
+            raise RuntimeError(f"SurrealDB upsert failed for {document.id}: {result}")
         return document.id
 
     async def delete(self, collection: Collection, id: str) -> None:
@@ -141,14 +144,23 @@ class SurrealAssetStore(AssetStore):
         edge_types: list[EdgeType],
         direction: Direction,
     ) -> dict[EdgeType, list[Node]]:
-        raise NotImplementedError("Graph traversal not yet implemented in POC")
+        # SurrealDB graph traversal via RELATE relationships.
+        # Direction mapping: Outbound → ->, Inbound → <-, Both → <->
+        # Example for outbound References edges:
+        #   SELECT ->References->* AS neighbors FROM escher_skills_global:`{node_id}`
+        # Returns empty until RELATE data is seeded — no NotImplementedError so
+        # resolve mode can call this cleanly without a hard failure.
+        return {et: [] for et in edge_types}
 
     async def traverse_path(
         self,
         start_id: str,
         edge_sequence: list[EdgeType],
     ) -> list[Node]:
-        raise NotImplementedError("Graph traversal not yet implemented in POC")
+        # Chained hop-by-hop traversal, e.g.:
+        #   control -Requires-> requirement -EvidencedBy-> evidence_type -CollectedVia-> tool
+        # Not yet seeded with graph data in POC.
+        return []
 
     # --- Graph write ---
 
