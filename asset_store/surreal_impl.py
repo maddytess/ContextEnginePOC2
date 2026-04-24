@@ -12,16 +12,17 @@ from .interface import (
 _TABLE: dict[Collection, str] = {
     Collection.Skill: "escher_skills_global",
     Collection.Agent: "escher_agent_registry_global",
+    Collection.Tool: "escher_tools_global",
 }
 
 # Fields joined for embedding at write time, per asset_store.md §9.3
 _EMBED_FIELDS: dict[Collection, list[str]] = {
     Collection.Skill: ["purpose", "description", "display_name", "capability_id"],
     Collection.Agent: ["capabilities"],
+    Collection.Tool: ["purpose", "tool_class"],
     Collection.Playbook: ["trigger_conditions", "name"],
     Collection.DomainLens: ["title", "content"],
     Collection.CloudKnowledge: ["title", "content"],
-    Collection.Tool: ["purpose", "tool_class"],
 }
 
 # For Agent, capabilities is a list — join it before embedding

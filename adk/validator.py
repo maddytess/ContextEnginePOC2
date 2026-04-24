@@ -1,19 +1,27 @@
 import re
 
-from .models import AgentManifest, SkillManifestYaml, ValidationResult
+from .models import AgentManifest, SkillManifestYaml, ToolManifestYaml, ValidationResult
 
 _VALID_OUTPUT_TYPES = {"finding", "report", "plan", "triage", "closure_summary"}
 _VALID_EXEC_LOCATIONS = {"client", "server", "hybrid"}
 _WRITE_TOOL_CLASSES = {"action_write", "supervised_write", "automated_write"}
+_READONLY_TOOL_CLASSES = {"inventory_read", "configuration_read", "report_generation", "log_read", "metric_read"}
+_VALID_PROVIDERS = {"aws", "azure", "gcp", "shared"}
 _AGENT_ID_RE = re.compile(r"^domain\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 
-def validate_package(manifest: AgentManifest, skills: list[SkillManifestYaml]) -> ValidationResult:
+def validate_package(
+    manifest: AgentManifest,
+    skills: list[SkillManifestYaml],
+    tools: list[ToolManifestYaml],
+) -> ValidationResult:
     result = ValidationResult()
     _validate_agent(manifest, skills, result)
     for skill in skills:
         _validate_skill(skill, manifest, result)
+    for tool in tools:
+        _validate_tool(tool, result)
     return result
 
 
@@ -113,3 +121,57 @@ def _validate_execution_plan(skill: SkillManifestYaml, result: ValidationResult)
                 result.errors.append(
                     f"{prefix} step {step.step_id!r}: depends_on references unknown step {dep!r}"
                 )
+
+
+def _validate_tool(tool: ToolManifestYaml, result: ValidationResult) -> None:
+    prefix = f"tool {tool.tool_id!r}:"
+
+    if not _SEMVER_RE.match(tool.version):
+        result.errors.append(f"{prefix} version {tool.version!r} is not valid semver (X.Y.Z)")
+
+    if tool.provider not in _VALID_PROVIDERS:
+        result.errors.append(
+            f"{prefix} provider {tool.provider!r} must be one of {sorted(_VALID_PROVIDERS)}"
+        )
+
+    if tool.execution_location not in _VALID_EXEC_LOCATIONS:
+        result.errors.append(
+            f"{prefix} execution_location {tool.execution_location!r} must be one of {sorted(_VALID_EXEC_LOCATIONS)}"
+        )
+
+    if not tool.input_schema.parameters:
+        result.errors.append(f"{prefix} input_schema must declare at least one parameter")
+
+    if tool.auth is not None:
+        result.errors.append(f"{prefix} auth must be null — tools execute with user credentials at the client")
+
+    if tool.tenant_id is not None:
+        result.errors.append(f"{prefix} tenant_id must be null — tools are always global")
+
+    if tool.tool_type == "readonly":
+        # cacheable required; write-only fields must be absent
+        if tool.cacheable is None:
+            result.errors.append(f"{prefix} readonly tool must declare cacheable (true or false)")
+        for field in ("idempotent", "requires_human_review", "rollback_supported", "rollback_api"):
+            if getattr(tool, field) is not None:
+                result.errors.append(
+                    f"{prefix} readonly tool must not declare {field} (write-only field)"
+                )
+        if tool.tool_class in _WRITE_TOOL_CLASSES:
+            result.errors.append(
+                f"{prefix} CE-013: tool_type=readonly but tool_class {tool.tool_class!r} is a write class"
+            )
+
+    elif tool.tool_type == "write":
+        # write-only fields required; cacheable must be absent
+        if tool.cacheable is not None:
+            result.errors.append(f"{prefix} write tool must not declare cacheable (readonly-only field)")
+        for field in ("idempotent", "requires_human_review", "rollback_supported"):
+            if getattr(tool, field) is None:
+                result.errors.append(f"{prefix} write tool must declare {field}")
+        if tool.rollback_supported and not tool.rollback_api:
+            result.errors.append(f"{prefix} rollback_supported=true requires a non-empty rollback_api list")
+        if tool.tool_class not in _WRITE_TOOL_CLASSES:
+            result.errors.append(
+                f"{prefix} tool_type=write but tool_class {tool.tool_class!r} is not a write class"
+            )

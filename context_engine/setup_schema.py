@@ -89,6 +89,43 @@ DEFINE INDEX IF NOT EXISTS agent_id_idx ON escher_agent_registry_global FIELDS a
 DEFINE INDEX IF NOT EXISTS agent_embedding_idx ON escher_agent_registry_global
     FIELDS embedding HNSW DIMENSION 768 DIST COSINE TYPE F32;
 
+-- ── Tool collection ───────────────────────────────────────────────────────────
+DEFINE TABLE IF NOT EXISTS escher_tools_global SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS tool_id            ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS name               ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS purpose            ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS tool_class         ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS tool_type          ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS domain             ON escher_tools_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS provider           ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS resource_types     ON escher_tools_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS api_calls          ON escher_tools_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS execution_location ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS execution_timeout  ON escher_tools_global TYPE int;
+DEFINE FIELD IF NOT EXISTS input_schema                        ON escher_tools_global TYPE object;
+DEFINE FIELD IF NOT EXISTS input_schema.parameters             ON escher_tools_global TYPE array;
+DEFINE FIELD IF NOT EXISTS input_schema.parameters[*]          ON escher_tools_global TYPE object;
+DEFINE FIELD IF NOT EXISTS input_schema.parameters[*].name     ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS input_schema.parameters[*].type     ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS input_schema.parameters[*].required ON escher_tools_global TYPE bool;
+DEFINE FIELD IF NOT EXISTS input_schema.parameters[*].description ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS output_schema_ref  ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS safety_class       ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS auth               ON escher_tools_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS cacheable          ON escher_tools_global TYPE option<bool>;
+DEFINE FIELD IF NOT EXISTS idempotent             ON escher_tools_global TYPE option<bool>;
+DEFINE FIELD IF NOT EXISTS requires_human_review  ON escher_tools_global TYPE option<bool>;
+DEFINE FIELD IF NOT EXISTS rollback_supported     ON escher_tools_global TYPE option<bool>;
+DEFINE FIELD IF NOT EXISTS rollback_api           ON escher_tools_global TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS version            ON escher_tools_global TYPE string;
+DEFINE FIELD IF NOT EXISTS tenant_id          ON escher_tools_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS embedding          ON escher_tools_global TYPE array<float>;
+
+DEFINE INDEX IF NOT EXISTS tool_id_idx ON escher_tools_global FIELDS tool_id UNIQUE;
+DEFINE INDEX IF NOT EXISTS tool_embedding_idx ON escher_tools_global
+    FIELDS embedding HNSW DIMENSION 768 DIST COSINE TYPE F32;
+
 -- ── Graph nodes (SCHEMALESS — typed by node_type field) ───────────────────────
 DEFINE TABLE IF NOT EXISTS escher_nodes SCHEMALESS;
 """
@@ -97,7 +134,7 @@ DEFINE TABLE IF NOT EXISTS escher_nodes SCHEMALESS;
 async def setup_schema():
     async with get_db() as db:
         await db.query(DDL)
-        print("Schema ready: escher_skills_global, escher_agent_registry_global, escher_nodes defined.")
+        print("Schema ready: escher_skills_global, escher_agent_registry_global, escher_tools_global, escher_nodes defined.")
 
 
 if __name__ == "__main__":

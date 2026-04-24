@@ -207,11 +207,59 @@ class SkillManifestYaml(BaseModel):
     version: str = "1.0.0"
 
 
+# --- Tool manifest models (parsed from /tools/*.yaml) ---
+
+class ToolParameter(BaseModel):
+    name: str
+    type: Literal["string", "boolean", "integer", "list", "map"]
+    required: bool
+    description: str
+
+
+class ToolInputSchema(BaseModel):
+    parameters: list[ToolParameter] = []
+
+
+class ToolManifestYaml(BaseModel):
+    tool_id: str
+    name: str
+    purpose: str
+    tool_class: str
+    tool_type: Literal["readonly", "write"]
+
+    domain: list[str]
+    provider: str
+    resource_types: list[str] = []
+    api_calls: list[str] = []
+
+    execution_location: Literal["client", "server", "hybrid"]
+    execution_timeout: int
+
+    input_schema: ToolInputSchema
+    output_schema_ref: str
+
+    safety_class: str
+    auth: None = None
+
+    # readonly-only
+    cacheable: Optional[bool] = None
+
+    # write-only
+    idempotent: Optional[bool] = None
+    requires_human_review: Optional[bool] = None
+    rollback_supported: Optional[bool] = None
+    rollback_api: Optional[list[str]] = None
+
+    version: str
+    tenant_id: None = None
+
+
 # --- Registration result ---
 
 class RegistrationResult(BaseModel):
     agent_id: str
     skill_ids: list[str]
+    tool_ids: list[str] = []
 
 
 # --- Validation result ---

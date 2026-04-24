@@ -22,8 +22,8 @@ async def main():
     await setup_schema()
 
     print("\n2. Loading and registering Security Exposure Agent via ADK...")
-    manifest, skills = load_package("data/security_exposure_agent")
-    result = validate_package(manifest, skills)
+    manifest, skills, tools = load_package("data/security_exposure_agent")
+    result = validate_package(manifest, skills, tools)
     if result.warnings:
         for w in result.warnings:
             print(f"   WARN: {w}")
@@ -33,10 +33,12 @@ async def main():
         print("ADK validation failed — aborting.")
         sys.exit(1)
 
-    reg = await register_package(manifest, skills)
-    print(f"   agent registered : {reg.agent_id}")
+    reg = await register_package(manifest, skills, tools)
+    for tid in reg.tool_ids:
+        print(f"   tool registered  : {tid}")
     for sid in reg.skill_ids:
         print(f"   skill registered : {sid}")
+    print(f"   agent registered : {reg.agent_id}")
 
     print("\n3. Phase 2C — /resolve/skill mode=search\n")
     top_hit = None
