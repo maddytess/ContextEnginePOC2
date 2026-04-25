@@ -11,6 +11,8 @@ async def register_agent(
     skill_ids: list[str],
     tenant_id: Optional[str],
 ) -> str:
+    domain = manifest.classification.domain
+
     agent_data = {
         "agent_id": manifest.agent_id,
         "name": manifest.name,
@@ -21,7 +23,7 @@ async def register_agent(
         "owner_contact": manifest.owner.contact,
         "purpose": manifest.purpose,
         "description": manifest.description,
-        "domain": manifest.classification.domain,
+        "domain": domain,
         "product_scope": manifest.classification.product_scope,
         "tier_support": manifest.classification.tier_support,
         "capabilities": manifest.capabilities,
@@ -35,17 +37,25 @@ async def register_agent(
     doc = Document(id=manifest.agent_id, data=agent_data)
     await _store.save(Collection.Agent, doc)
 
-    node = Node(
+    # Domain node (idempotent upsert — shared across all agents in this domain)
+    domain_node = Node(id=domain, node_type="Domain", properties={"domain": domain})
+    await _store.save_node(domain_node)
+
+    # Agent node
+    agent_node = Node(
         id=manifest.agent_id,
         node_type="Agent",
-        properties={
-            "domain": manifest.classification.domain,
-            "tenant_id": tenant_id,
-        },
+        properties={"domain": domain, "tenant_id": tenant_id},
     )
-    await _store.save_node(node)
+    await _store.save_node(agent_node)
 
+    # Domain → owns → Agent
+    await _store.save_edge(domain, manifest.agent_id, EdgeType.Owns)
+
+    # Agent → exports → Skill (exported_skill_ids only — hidden skills are not part of exported surface)
+    exported = set(manifest.skills.exported_skill_ids)
     for skill_id in skill_ids:
-        await _store.save_edge(manifest.agent_id, skill_id, EdgeType.References)
+        if skill_id in exported:
+            await _store.save_edge(manifest.agent_id, skill_id, EdgeType.Exports)
 
     return manifest.agent_id

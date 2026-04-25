@@ -1,12 +1,13 @@
-import glob
 from pathlib import Path
 
 import yaml
 
-from .models import AgentManifest, SkillManifestYaml, ToolManifestYaml
+from .models import (
+    AgentManifest, ContextBuilderManifestYaml, Package, SkillManifestYaml, ToolManifestYaml,
+)
 
 
-def load_package(package_dir: str) -> tuple[AgentManifest, list[SkillManifestYaml], list[ToolManifestYaml]]:
+def load_package(package_dir: str) -> Package:
     root = Path(package_dir)
     if not root.is_dir():
         raise FileNotFoundError(f"Package directory not found: {package_dir}")
@@ -19,10 +20,12 @@ def load_package(package_dir: str) -> tuple[AgentManifest, list[SkillManifestYam
         agent_data = yaml.safe_load(f)
     manifest = AgentManifest.model_validate(agent_data)
 
-    skills = _load_skills(root, manifest)
-    tools = _load_tools(root)
-
-    return manifest, skills, tools
+    return Package(
+        manifest=manifest,
+        skills=_load_skills(root, manifest),
+        tools=_load_tools(root),
+        context_builders=_load_context_builders(root),
+    )
 
 
 def _load_skills(root: Path, manifest: AgentManifest) -> list[SkillManifestYaml]:
@@ -49,22 +52,26 @@ def _load_tools(root: Path) -> list[ToolManifestYaml]:
     tools_dir = root / "tools"
     if not tools_dir.is_dir():
         return []
-
     tools: list[ToolManifestYaml] = []
-    for tool_path in sorted(tools_dir.glob("*.yaml")):
-        with open(tool_path) as f:
-            tool_data = yaml.safe_load(f)
-        tools.append(ToolManifestYaml.model_validate(tool_data))
-
+    for path in sorted(tools_dir.glob("*.yaml")):
+        with open(path) as f:
+            tools.append(ToolManifestYaml.model_validate(yaml.safe_load(f)))
     return tools
 
 
+def _load_context_builders(root: Path) -> list[ContextBuilderManifestYaml]:
+    cb_dir = root / "context_builders"
+    if not cb_dir.is_dir():
+        return []
+    cbs: list[ContextBuilderManifestYaml] = []
+    for path in sorted(cb_dir.glob("*.yaml")):
+        with open(path) as f:
+            cbs.append(ContextBuilderManifestYaml.model_validate(yaml.safe_load(f)))
+    return cbs
+
+
 def _find_skill_yaml(skills_dir: Path, skill_id: str, skill_name: str) -> Path | None:
-    candidates = [
-        skills_dir / skill_name / "skill.yaml",
-        skills_dir / skill_id / "skill.yaml",
-    ]
-    for path in candidates:
+    for path in [skills_dir / skill_name / "skill.yaml", skills_dir / skill_id / "skill.yaml"]:
         if path.exists():
             return path
     return None

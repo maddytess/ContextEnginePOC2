@@ -17,15 +17,19 @@ class Collection(str, Enum):
 
 
 class EdgeType(str, Enum):
-    # ADK Platform Graph
-    References = "References"
-    ConstrainedBy = "ConstrainedBy"
-    RendersVia = "RendersVia"
-    Produces = "Produces"
-    Recommends = "Recommends"
-    CollectsVia = "CollectsVia"
-    Invokes = "Invokes"
-    Requires = "Requires"
+    # ADK Platform Graph — domain/agent/skill spine
+    Owns = "Owns"                    # Domain → Agent
+    Exports = "Exports"              # Agent → Skill (exported_skill_ids only)
+    # ADK Platform Graph — skill/context/artifact edges
+    References = "References"        # Skill → Context Builder / Playbook → Context Builder
+    ReusedBy = "ReusedBy"            # Context Builder → Skill | Context Builder → Playbook
+    ConstrainedBy = "ConstrainedBy"  # Skill → Guardrail
+    RendersVia = "RendersVia"        # Skill → Template
+    Produces = "Produces"            # Skill → Artifact
+    Recommends = "Recommends"        # Skill → Playbook
+    CollectsVia = "CollectsVia"      # Context Builder → Tool
+    Invokes = "Invokes"              # Playbook → Skill
+    Requires = "Requires"            # Playbook → Tool
     # Domain Expert Graph
     EvidencedBy = "EvidencedBy"
     CollectedVia = "CollectedVia"

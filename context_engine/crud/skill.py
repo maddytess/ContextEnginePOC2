@@ -30,6 +30,10 @@ async def register_skill(
     )
     await _store.save_node(node)
 
+    # Skill → References → ContextBuilder (graph edge for each declared context builder)
+    for cb_id in skill.context_builder_ids:
+        await _store.save_edge(skill.skill_id, cb_id, EdgeType.References)
+
     return skill.skill_id
 
 

@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Literal, Optional
 from pydantic import BaseModel, model_validator
 
@@ -254,12 +255,66 @@ class ToolManifestYaml(BaseModel):
     tenant_id: None = None
 
 
+# --- Context Builder manifest models (parsed from /context_builders/*.yaml) ---
+
+class CollectionUnit(BaseModel):
+    unit_id: str
+    purpose: str
+    required: bool
+    context_type: str
+    preferred_tool_classes: list[str] = []
+    preferred_tool_tags: list[str] = []
+    execution_locations: list[str]
+    freshness_window: str
+    cache_policy: str = "refresh_if_stale"
+    normalization_schema_ref: str
+
+
+class Orchestration(BaseModel):
+    merge_strategy: str = "union"
+    dedupe_keys: list[str] = []
+    max_parallel_units: int = 3
+
+
+class Fallbacks(BaseModel):
+    on_missing_required_context: str = "request_more"
+    fallback_probe_policy: str = "allowed_with_review"
+
+
+class ContextBuilderManifestYaml(BaseModel):
+    context_builder_id: str
+    name: str
+    display_name: str
+    domain: str
+    data_type: str
+    provider: str
+    status: str = "active"
+    tenant_id: None = None
+    purpose: str
+    collection_units: list[CollectionUnit]
+    output_schema_ref: str
+    orchestration: Optional[Orchestration] = None
+    fallbacks: Optional[Fallbacks] = None
+    version: str
+
+
+# --- Package dataclass — structural container for a loaded ADK package ---
+
+@dataclass
+class Package:
+    manifest: AgentManifest
+    skills: list[SkillManifestYaml] = field(default_factory=list)
+    tools: list[ToolManifestYaml] = field(default_factory=list)
+    context_builders: list[ContextBuilderManifestYaml] = field(default_factory=list)
+
+
 # --- Registration result ---
 
 class RegistrationResult(BaseModel):
     agent_id: str
     skill_ids: list[str]
     tool_ids: list[str] = []
+    context_builder_ids: list[str] = []
 
 
 # --- Validation result ---

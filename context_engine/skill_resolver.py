@@ -73,7 +73,6 @@ async def _resolve(request: ResolveSkillRequest) -> ResolveSkillResponse:
     if doc.data.get("owner_agent_id") != request.owner_agent_id:
         raise SkillNotFoundError(request.skill_id)
 
-    # Graph call per asset_store.md §12 — empty in POC until RELATE data is seeded
     await store.get_neighbors(
         request.skill_id,  # type: ignore[arg-type]
         [EdgeType.References, EdgeType.ConstrainedBy, EdgeType.RendersVia, EdgeType.Produces],

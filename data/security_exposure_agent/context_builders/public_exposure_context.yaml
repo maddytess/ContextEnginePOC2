@@ -1,0 +1,46 @@
+context_builder_id: security.public_exposure_context
+name: public_exposure_context
+display_name: Public Exposure Context
+domain: security
+data_type: public_exposure_inventory
+provider: aws
+status: active
+tenant_id: null
+
+purpose: Gather normalized context needed to detect public exposure risks.
+
+collection_units:
+  - unit_id: fetch_network_ingress_surface
+    purpose: gather public ingress candidates
+    required: true
+    context_type: public_exposure_inventory
+    preferred_tool_classes: [inventory_read]
+    preferred_tool_tags: [security, ingress, aws]
+    execution_locations: [client]
+    freshness_window: 30m
+    cache_policy: refresh_if_stale
+    normalization_schema_ref: schemas/public_exposure_inventory.yaml
+
+  - unit_id: fetch_public_storage_surface
+    purpose: gather public S3 bucket exposure
+    required: false
+    context_type: resource_scope_summary
+    preferred_tool_classes: [inventory_read]
+    preferred_tool_tags: [security, storage, aws]
+    execution_locations: [client]
+    freshness_window: 30m
+    cache_policy: refresh_if_stale
+    normalization_schema_ref: schemas/storage_exposure_inventory.yaml
+
+output_schema_ref: schemas/public_exposure_context.yaml
+
+orchestration:
+  merge_strategy: union
+  dedupe_keys: [environment]
+  max_parallel_units: 3
+
+fallbacks:
+  on_missing_required_context: request_more
+  fallback_probe_policy: allowed_with_review
+
+version: "0.1.0"

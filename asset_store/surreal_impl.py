@@ -13,20 +13,19 @@ _TABLE: dict[Collection, str] = {
     Collection.Skill: "escher_skills_global",
     Collection.Agent: "escher_agent_registry_global",
     Collection.Tool: "escher_tools_global",
+    Collection.ContextBuilder: "escher_context_builders_global",
 }
 
 # Fields joined for embedding at write time, per asset_store.md §9.3
 _EMBED_FIELDS: dict[Collection, list[str]] = {
-    Collection.Skill: ["purpose", "description", "display_name", "capability_id"],
+    Collection.Skill: ["purpose", "description", "display_name", "capability_id", "capabilities", "context_descriptions"],
     Collection.Agent: ["capabilities"],
     Collection.Tool: ["purpose", "tool_class"],
+    Collection.ContextBuilder: ["purpose", "data_type"],
     Collection.Playbook: ["trigger_conditions", "name"],
     Collection.DomainLens: ["title", "content"],
     Collection.CloudKnowledge: ["title", "content"],
 }
-
-# For Agent, capabilities is a list — join it before embedding
-_LIST_JOIN_FIELDS: set[Collection] = {Collection.Agent}
 
 
 def _table(collection: Collection) -> str:
@@ -149,7 +148,7 @@ class SurrealAssetStore(AssetStore):
         async with get_db() as db:
             await db.query(f"DELETE {table}:`{id}`")
 
-    # --- Graph read (not yet wired to SurrealDB graph layer — POC scope) ---
+    # --- Graph read ---
 
     async def get_neighbors(
         self,
@@ -157,13 +156,36 @@ class SurrealAssetStore(AssetStore):
         edge_types: list[EdgeType],
         direction: Direction,
     ) -> dict[EdgeType, list[Node]]:
-        # SurrealDB graph traversal via RELATE relationships.
-        # Direction mapping: Outbound → ->, Inbound → <-, Both → <->
-        # Example for outbound References edges:
-        #   SELECT ->References->* AS neighbors FROM escher_skills_global:`{node_id}`
-        # Returns empty until RELATE data is seeded — no NotImplementedError so
-        # resolve mode can call this cleanly without a hard failure.
-        return {et: [] for et in edge_types}
+        result: dict[EdgeType, list[Node]] = {}
+
+        async with get_db() as db:
+            for edge_type in edge_types:
+                table = edge_type.value
+                neighbor_ids: list[str] = []
+
+                if direction in (Direction.Outbound, Direction.Both):
+                    rows = await db.query(
+                        f"SELECT to_id FROM {table} WHERE from_id = '{node_id}'"
+                    ) or []
+                    neighbor_ids.extend(r["to_id"] for r in rows if "to_id" in r)
+
+                if direction in (Direction.Inbound, Direction.Both):
+                    rows = await db.query(
+                        f"SELECT from_id FROM {table} WHERE to_id = '{node_id}'"
+                    ) or []
+                    neighbor_ids.extend(r["from_id"] for r in rows if "from_id" in r)
+
+                nodes: list[Node] = []
+                for nid in neighbor_ids:
+                    node_rows = await db.query(f"SELECT * FROM escher_nodes:`{nid}`") or []
+                    if node_rows:
+                        row = node_rows[0]
+                        props = {k: v for k, v in row.items() if k not in ("id", "node_type")}
+                        nodes.append(Node(id=nid, node_type=row.get("node_type", ""), properties=props))
+
+                result[edge_type] = nodes
+
+        return result
 
     async def traverse_path(
         self,

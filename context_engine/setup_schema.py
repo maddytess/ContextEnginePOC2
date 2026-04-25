@@ -126,6 +126,49 @@ DEFINE INDEX IF NOT EXISTS tool_id_idx ON escher_tools_global FIELDS tool_id UNI
 DEFINE INDEX IF NOT EXISTS tool_embedding_idx ON escher_tools_global
     FIELDS embedding HNSW DIMENSION 768 DIST COSINE TYPE F32;
 
+-- ── Context Builder collection ────────────────────────────────────────────────
+DEFINE TABLE IF NOT EXISTS escher_context_builders_global SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS context_builder_id ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS name               ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS display_name       ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS domain             ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS data_type          ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS provider           ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS status             ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS tenant_id          ON escher_context_builders_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS purpose            ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS output_schema_ref  ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS version            ON escher_context_builders_global TYPE string;
+
+DEFINE FIELD IF NOT EXISTS collection_units                                        ON escher_context_builders_global TYPE array;
+DEFINE FIELD IF NOT EXISTS collection_units[*]                                     ON escher_context_builders_global TYPE object;
+DEFINE FIELD IF NOT EXISTS collection_units[*].unit_id                             ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS collection_units[*].purpose                             ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS collection_units[*].required                            ON escher_context_builders_global TYPE bool;
+DEFINE FIELD IF NOT EXISTS collection_units[*].context_type                        ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS collection_units[*].preferred_tool_classes              ON escher_context_builders_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS collection_units[*].preferred_tool_tags                 ON escher_context_builders_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS collection_units[*].execution_locations                 ON escher_context_builders_global TYPE array<string>;
+DEFINE FIELD IF NOT EXISTS collection_units[*].freshness_window                    ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS collection_units[*].cache_policy                        ON escher_context_builders_global TYPE string;
+DEFINE FIELD IF NOT EXISTS collection_units[*].normalization_schema_ref            ON escher_context_builders_global TYPE string;
+
+DEFINE FIELD IF NOT EXISTS orchestration                         ON escher_context_builders_global TYPE option<object>;
+DEFINE FIELD IF NOT EXISTS orchestration.merge_strategy          ON escher_context_builders_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS orchestration.dedupe_keys             ON escher_context_builders_global TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS orchestration.max_parallel_units      ON escher_context_builders_global TYPE option<int>;
+
+DEFINE FIELD IF NOT EXISTS fallbacks                                          ON escher_context_builders_global TYPE option<object>;
+DEFINE FIELD IF NOT EXISTS fallbacks.on_missing_required_context              ON escher_context_builders_global TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS fallbacks.fallback_probe_policy                    ON escher_context_builders_global TYPE option<string>;
+
+DEFINE FIELD IF NOT EXISTS embedding ON escher_context_builders_global TYPE array<float>;
+
+DEFINE INDEX IF NOT EXISTS cb_id_idx ON escher_context_builders_global FIELDS context_builder_id UNIQUE;
+DEFINE INDEX IF NOT EXISTS cb_embedding_idx ON escher_context_builders_global
+    FIELDS embedding HNSW DIMENSION 768 DIST COSINE TYPE F32;
+
 -- ── Graph nodes (SCHEMALESS — typed by node_type field) ───────────────────────
 DEFINE TABLE IF NOT EXISTS escher_nodes SCHEMALESS;
 """

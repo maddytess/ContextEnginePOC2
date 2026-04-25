@@ -1,6 +1,9 @@
 import re
 
-from .models import AgentManifest, SkillManifestYaml, ToolManifestYaml, ValidationResult
+from .models import (
+    AgentManifest, ContextBuilderManifestYaml, Package,
+    SkillManifestYaml, ToolManifestYaml, ValidationResult,
+)
 
 _VALID_OUTPUT_TYPES = {"finding", "report", "plan", "triage", "closure_summary"}
 _VALID_EXEC_LOCATIONS = {"client", "server", "hybrid"}
@@ -11,17 +14,15 @@ _AGENT_ID_RE = re.compile(r"^domain\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 
-def validate_package(
-    manifest: AgentManifest,
-    skills: list[SkillManifestYaml],
-    tools: list[ToolManifestYaml],
-) -> ValidationResult:
+def validate_package(pkg: Package) -> ValidationResult:
     result = ValidationResult()
-    _validate_agent(manifest, skills, result)
-    for skill in skills:
-        _validate_skill(skill, manifest, result)
-    for tool in tools:
+    _validate_agent(pkg.manifest, pkg.skills, result)
+    for skill in pkg.skills:
+        _validate_skill(skill, pkg.manifest, result)
+    for tool in pkg.tools:
         _validate_tool(tool, result)
+    for cb in pkg.context_builders:
+        _validate_context_builder(cb, result)
     return result
 
 
@@ -98,11 +99,9 @@ def _validate_skill(skill: SkillManifestYaml, manifest: AgentManifest, result: V
 def _validate_execution_plan(skill: SkillManifestYaml, result: ValidationResult) -> None:
     plan = skill.execution_plan
     prefix = f"skill {skill.skill_id!r} execution_plan:"
-
     step_ids = {s.step_id for s in plan.steps}
 
-    has_root = any(not s.depends_on for s in plan.steps)
-    if plan.steps and not has_root:
+    if plan.steps and not any(not s.depends_on for s in plan.steps):
         result.errors.append(f"{prefix} no step has empty depends_on — nothing can start")
 
     for step in plan.steps:
@@ -149,29 +148,60 @@ def _validate_tool(tool: ToolManifestYaml, result: ValidationResult) -> None:
         result.errors.append(f"{prefix} tenant_id must be null — tools are always global")
 
     if tool.tool_type == "readonly":
-        # cacheable required; write-only fields must be absent
         if tool.cacheable is None:
             result.errors.append(f"{prefix} readonly tool must declare cacheable (true or false)")
-        for field in ("idempotent", "requires_human_review", "rollback_supported", "rollback_api"):
-            if getattr(tool, field) is not None:
-                result.errors.append(
-                    f"{prefix} readonly tool must not declare {field} (write-only field)"
-                )
+        for f_name in ("idempotent", "requires_human_review", "rollback_supported", "rollback_api"):
+            if getattr(tool, f_name) is not None:
+                result.errors.append(f"{prefix} readonly tool must not declare {f_name} (write-only field)")
         if tool.tool_class in _WRITE_TOOL_CLASSES:
             result.errors.append(
                 f"{prefix} CE-013: tool_type=readonly but tool_class {tool.tool_class!r} is a write class"
             )
 
     elif tool.tool_type == "write":
-        # write-only fields required; cacheable must be absent
         if tool.cacheable is not None:
             result.errors.append(f"{prefix} write tool must not declare cacheable (readonly-only field)")
-        for field in ("idempotent", "requires_human_review", "rollback_supported"):
-            if getattr(tool, field) is None:
-                result.errors.append(f"{prefix} write tool must declare {field}")
+        for f_name in ("idempotent", "requires_human_review", "rollback_supported"):
+            if getattr(tool, f_name) is None:
+                result.errors.append(f"{prefix} write tool must declare {f_name}")
         if tool.rollback_supported and not tool.rollback_api:
             result.errors.append(f"{prefix} rollback_supported=true requires a non-empty rollback_api list")
         if tool.tool_class not in _WRITE_TOOL_CLASSES:
             result.errors.append(
                 f"{prefix} tool_type=write but tool_class {tool.tool_class!r} is not a write class"
             )
+
+
+def _validate_context_builder(cb: ContextBuilderManifestYaml, result: ValidationResult) -> None:
+    prefix = f"context_builder {cb.context_builder_id!r}:"
+
+    for field_name, value in [
+        ("context_builder_id", cb.context_builder_id),
+        ("data_type", cb.data_type),
+        ("domain", cb.domain),
+        ("purpose", cb.purpose),
+    ]:
+        if not value or not str(value).strip():
+            result.errors.append(f"{prefix} {field_name} is required and must be non-empty")
+
+    if not cb.collection_units:
+        result.errors.append(f"{prefix} collection_units must have at least one entry")
+
+    for unit in cb.collection_units:
+        write_classes = set(unit.preferred_tool_classes) & _WRITE_TOOL_CLASSES
+        if write_classes:
+            result.errors.append(
+                f"{prefix} unit {unit.unit_id!r}: preferred_tool_classes contains write class(es): "
+                f"{sorted(write_classes)}. Context Builders are readonly only."
+            )
+
+    if cb.provider not in _VALID_PROVIDERS:
+        result.errors.append(
+            f"{prefix} provider {cb.provider!r} must be one of {sorted(_VALID_PROVIDERS)}"
+        )
+
+    if cb.tenant_id is not None:
+        result.errors.append(f"{prefix} tenant_id must be null — context builders are always global")
+
+    if not _SEMVER_RE.match(cb.version):
+        result.errors.append(f"{prefix} version {cb.version!r} is not valid semver (X.Y.Z)")
