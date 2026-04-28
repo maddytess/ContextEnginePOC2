@@ -1,0 +1,117 @@
+{
+  "_id": "security.network_exposure_audit",
+  "_version": "0.1.0",
+  "_created_at": "2024-01-01T00:00:00Z",
+  "_updated_at": "2024-01-01T00:00:00Z",
+  "skill_id": "security.network_exposure_audit",
+  "display_name": "Network Exposure Audit",
+  "client_action_type": "network_exposure",
+  "owner_agent_id": "domain.security.exposure",
+  "capability_id": "audit_network_exposure",
+  "domain": "security",
+  "tier": "basic",
+  "status": "active",
+  "tenant_id": null,
+  "purpose": "Scan for cloud resources directly or indirectly reachable from the internet and produce a structured exposure report.",
+  "description": "Audits internet-facing resources and network misconfigurations. Use for: network exposure audit, internet-reachable resources, open security groups, open NSGs, SSH/RDP open to internet, public RDS, public S3, internet-facing load balancers, IMDSv2, Lambda unauthenticated URLs, EKS public API server, OpenSearch public endpoint, VPC flow logs, Azure VM public ingress, Azure NSG findings, Azure PaaS public access. Supports raw or presentation format.",
+  "capabilities": [
+    "detect EC2 instances with public IP and open inbound security group rules (SSH, RDP, 0.0.0.0/0)",
+    "find RDS instances with PubliclyAccessible=true and internet-facing ELBs without WAF",
+    "identify S3 buckets with public ACLs or bucket policies allowing anonymous access",
+    "check IMDSv2 enforcement and Lambda function URLs without authentication",
+    "audit Azure VMs, NSGs, PaaS services, and AKS for public network access"
+  ],
+  "context_descriptions": [
+    "security group and NSG rules \u2014 inbound rules with 0.0.0.0/0 on sensitive ports",
+    "public resource inventory \u2014 EC2, RDS, ELB, Lambda, EKS, OpenSearch with internet-facing config",
+    "storage public access \u2014 S3 ACLs, bucket policies, Azure storage public access settings",
+    "VPC configuration \u2014 internet gateway associations, public subnets, VPC flow log status"
+  ],
+  "context_builder_ids": [
+    "security.network_exposure_context"
+  ],
+  "tool_ids": [
+    "aws.describe_public_ingress_surface",
+    "azure.describe_public_ingress_surface"
+  ],
+  "supported_context_types": [
+    "network_security_inventory",
+    "public_exposure_inventory",
+    "resource_scope_summary",
+    "account_scope"
+  ],
+  "tool_affinity": {
+    "allowed_tool_classes": [
+      "inventory_read"
+    ],
+    "preferred_tool_tags": [
+      "network",
+      "exposure",
+      "public",
+      "ingress",
+      "ssh",
+      "rdp",
+      "security-group",
+      "nsg"
+    ],
+    "execution_locations": [
+      "client"
+    ]
+  },
+  "execution_plan": {
+    "steps": [
+      {
+        "step_id": "fetch_security_group_rules",
+        "context_type": "network_security_inventory",
+        "tool_class": "inventory_read",
+        "depends_on": [],
+        "required": true,
+        "on_failure": "stop"
+      },
+      {
+        "step_id": "fetch_public_resource_inventory",
+        "context_type": "public_exposure_inventory",
+        "tool_class": "inventory_read",
+        "depends_on": [],
+        "required": true,
+        "on_failure": "stop"
+      },
+      {
+        "step_id": "fetch_resource_scope",
+        "context_type": "resource_scope_summary",
+        "tool_class": "inventory_read",
+        "depends_on": [
+          "fetch_public_resource_inventory"
+        ],
+        "required": false,
+        "on_failure": "skip"
+      }
+    ],
+    "on_partial_failure": "continue"
+  },
+  "output_type": "finding",
+  "output_schema_ref": "schemas/network_exposure_finding.yaml",
+  "artifact_effects": {
+    "can_create": [
+      "finding"
+    ],
+    "can_update": [],
+    "can_enrich": [
+      "triage"
+    ]
+  },
+  "action_semantics": {
+    "can_request_execution": false,
+    "can_generate_plan_fragments": true,
+    "can_generate_bundle_hints": false,
+    "can_generate_playbook_candidates": true
+  },
+  "safety": {
+    "safety_class": "advisory",
+    "requires_human_review_for": []
+  },
+  "evidence": {
+    "emits_rationale": true,
+    "emits_confidence": true
+  }
+}

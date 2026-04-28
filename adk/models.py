@@ -195,7 +195,7 @@ class SkillManifestYaml(BaseModel):
     description: str
     capabilities: list[str] = []
     context_descriptions: list[str] = []
-    output_type: Literal["finding", "report", "plan", "triage", "closure_summary"]
+    output_type: str
     output_schema_ref: Optional[str] = None
     context_builder_ids: list[str] = []
     supported_context_types: list[str] = []

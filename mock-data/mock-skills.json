@@ -1,0 +1,895 @@
+[
+  {
+    "_id": "billing.cost_query",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "billing.cost_query",
+    "display_name":    "Cloud Cost Query",
+    "client_action_type": "cost",
+    "owner_agent_id":  "domain.billing.cost",
+    "capability_id":   "query_cloud_costs",
+    "domain":          "billing",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Fetch cloud cost and billing data from AWS or Azure for any time range and service filter.",
+    "description": "Queries AWS Cost Explorer or Azure Cost Management. Use for: what did EC2 cost last month, how much did we spend on S3, Azure costs for last 6 months, compare EC2 vs Lambda costs, daily cost breakdown, YTD spend by service. Supports MONTHLY/DAILY granularity, service/region filtering, account scoping. Multi-step for multiple services or time periods.",
+
+    "capabilities": [
+      "retrieve AWS cost data from Cost Explorer for any time period",
+      "retrieve Azure cost data from Cost Management API",
+      "filter costs by service, region, account-id, profile, and tag",
+      "support MONTHLY, DAILY, and HOURLY cost granularity breakdowns",
+      "compare costs across multiple services or periods via multi-step execution"
+    ],
+
+    "context_descriptions": [
+      "billing time range — start and end dates for cost query with monthly boundary alignment",
+      "service filter — specific AWS or Azure service to scope the cost query",
+      "cost metric — AmortizedCost, UnblendedCost, BlendedCost for AWS; ActualCost, AmortizedCost for Azure",
+      "account scope — AWS profile or Azure subscription-name to target"
+    ],
+
+    "context_builder_ids": ["billing.cost_context"],
+    "tool_ids": ["aws.query_cost_explorer", "azure.query_cost_management"],
+    "supported_context_types": ["billing_time_range", "service_filter", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["billing_read"],
+      "preferred_tool_tags":  ["cost", "billing", "aws", "azure"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "fetch_cost_data",
+          "context_type": "billing_time_range",
+          "tool_class":   "billing_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "cost_report",
+    "output_schema_ref": "schemas/cost_report.yaml",
+    "artifact_effects": { "can_create": ["cost_report"], "can_update": [], "can_enrich": [] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": false },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "operations.infrastructure_monitor",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "operations.infrastructure_monitor",
+    "display_name":    "Infrastructure Health Monitor",
+    "client_action_type": "monitor",
+    "owner_agent_id":  "domain.operations.monitoring",
+    "capability_id":   "monitor_infrastructure_metrics",
+    "domain":          "operations",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Monitor AWS CloudWatch or Azure Monitor metrics for infrastructure health and performance.",
+    "description": "Queries CloudWatch or Azure Monitor for real-time and historical metrics. Use for: EC2 CPU metrics, RDS memory, alarm status, disk utilization, performance thresholds, health checks. Supports service/region/dimension/tag filtering, threshold conditions (>80, <20), top-N results. Multi-step for multiple metrics or resources.",
+
+    "capabilities": [
+      "retrieve CloudWatch metrics for any AWS service (EC2, RDS, Lambda, ECS, ELB, etc.)",
+      "retrieve Azure Monitor metrics for any Azure resource type",
+      "filter metrics by dimensions, tags, region, and resource identifier",
+      "evaluate threshold conditions and flag resources exceeding limits",
+      "return top-N resources by metric value for capacity planning"
+    ],
+
+    "context_descriptions": [
+      "metric name and namespace — CloudWatch metric (e.g. CPUUtilization) or Azure metric (e.g. Percentage CPU)",
+      "resource dimensions — instance IDs, DB identifiers, or resource names to scope the query",
+      "monitoring duration — time window for metric aggregation (e.g. last 24h, last 7d)",
+      "threshold condition — value to compare against with direction (>80, <20)"
+    ],
+
+    "context_builder_ids": ["operations.monitor_context"],
+    "tool_ids": ["aws.query_cloudwatch_metrics", "azure.query_monitor_metrics"],
+    "supported_context_types": ["metric_spec", "resource_scope", "time_window", "threshold_condition"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["metrics_read"],
+      "preferred_tool_tags":  ["monitor", "metrics", "cloudwatch", "azure-monitor", "cpu", "memory", "health"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "fetch_metrics",
+          "context_type": "metric_spec",
+          "tool_class":   "metrics_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "metric_report",
+    "output_schema_ref": "schemas/metric_report.yaml",
+    "artifact_effects": { "can_create": ["metric_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": true, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": false },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "security.cloudtrail_events",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "security.cloudtrail_events",
+    "display_name":    "CloudTrail Audit Events",
+    "client_action_type": "events",
+    "owner_agent_id":  "domain.security.audit",
+    "capability_id":   "query_audit_events",
+    "domain":          "security",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Query CloudTrail or Azure Activity Log for historical events — who did what, when, and from where.",
+    "description": "Searches CloudTrail event history or Azure Activity Log. Use for: who stopped my EC2, who created or deleted a resource, user activity history, API call records, detect unauthorized actions. Multi-step required for multiple event types (CloudTrail constraint: one event-name per step).",
+
+    "capabilities": [
+      "query CloudTrail for specific API events with full filter support (event-name, user, IP, resource, error-code)",
+      "query Azure Activity Log for resource operation history",
+      "detect who performed a specific action (stopped, terminated, created, deleted a resource)",
+      "surface failed or unauthorized API calls via error-code filtering",
+      "return compact or full event records with requester identity and source IP"
+    ],
+
+    "context_descriptions": [
+      "event filter — CloudTrail event-name (e.g. StopInstances) or Azure resource-provider",
+      "actor filter — username or IAM principal who performed the action",
+      "time range — audit window with exact ISO-8601 start and end timestamps",
+      "resource filter — specific resource name or type to narrow audit results"
+    ],
+
+    "context_builder_ids": ["security.cloudtrail_context"],
+    "tool_ids": ["aws.query_cloudtrail_events", "azure.query_activity_log"],
+    "supported_context_types": ["audit_event_filter", "actor_scope", "audit_time_range", "resource_filter"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["audit_read"],
+      "preferred_tool_tags":  ["cloudtrail", "events", "who", "activity", "audit", "logs"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "query_events",
+          "context_type": "audit_event_filter",
+          "tool_class":   "audit_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "audit_event_report",
+    "output_schema_ref": "schemas/audit_event_report.yaml",
+    "artifact_effects": { "can_create": ["audit_event_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": false },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "operations.estate_scanner",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "operations.estate_scanner",
+    "display_name":    "AWS Estate Scanner",
+    "client_action_type": "estate_scanner",
+    "owner_agent_id":  "domain.operations.discovery",
+    "capability_id":   "scan_cloud_estate",
+    "domain":          "operations",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Trigger a scan to refresh the local estate cache from cloud APIs with no result expected back.",
+    "description": "Initiates AWS estate discovery to refresh the local resource inventory. Use ONLY when user's intent is to refresh/sync data with no result expected — e.g. 'scan my AWS account', 'refresh my estate'. If user expects data back, route to the appropriate data-return skill instead.",
+
+    "capabilities": [
+      "trigger full AWS estate discovery scan across all supported resource types",
+      "trigger incremental estate sync to update changed resources only",
+      "refresh the local Context Manager estate cache from live cloud APIs"
+    ],
+
+    "context_descriptions": [
+      "scan target — full or incremental scan mode",
+      "account scope — AWS profile to scan"
+    ],
+
+    "context_builder_ids": ["operations.estate_scan_context"],
+    "tool_ids": ["aws.scan_estate"],
+    "supported_context_types": ["scan_target", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["inventory_read"],
+      "preferred_tool_tags":  ["scan", "discover", "estate", "refresh", "sync"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "trigger_estate_scan",
+          "context_type": "scan_target",
+          "tool_class":   "inventory_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "scan_status",
+    "output_schema_ref": "schemas/scan_status.yaml",
+    "artifact_effects": { "can_create": ["scan_status"], "can_update": ["estate_index"], "can_enrich": [] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": false },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": false, "emits_confidence": false }
+  },
+
+  {
+    "_id": "compliance.soc2_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "compliance.soc2_audit",
+    "display_name":    "SOC 2 Compliance Audit",
+    "client_action_type": "audit",
+    "owner_agent_id":  "domain.compliance.audit",
+    "capability_id":   "run_soc2_audit",
+    "domain":          "compliance",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run a SOC 2 Trust Service Criteria compliance audit against the AWS or Azure cloud environment.",
+    "description": "Evaluates the cloud environment against SOC 2 Trust Service Criteria. Use ONLY for SOC 2 compliance requests. Not for ISO 27001, HIPAA, GDPR, or PCI audits.",
+
+    "capabilities": [
+      "evaluate AWS infrastructure against SOC 2 Trust Service Criteria",
+      "evaluate Azure infrastructure against SOC 2 compliance controls",
+      "produce structured compliance report with per-control pass/fail status",
+      "surface remediation steps for failing SOC 2 controls"
+    ],
+
+    "context_descriptions": [
+      "account scope — AWS profile or Azure subscription-name to audit",
+      "compliance framework — SOC 2 Trust Service Criteria control set"
+    ],
+
+    "context_builder_ids": ["compliance.soc2_context"],
+    "tool_ids": ["aws.run_soc2_audit", "azure.run_soc2_audit"],
+    "supported_context_types": ["account_scope", "compliance_framework"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["compliance_read"],
+      "preferred_tool_tags":  ["soc2", "compliance", "audit", "security", "trust"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "run_soc2_checks",
+          "context_type": "compliance_framework",
+          "tool_class":   "compliance_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "compliance_report",
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "artifact_effects": { "can_create": ["compliance_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "compliance.iso27001_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "compliance.iso27001_audit",
+    "display_name":    "ISO 27001 Compliance Audit",
+    "client_action_type": "iso",
+    "owner_agent_id":  "domain.compliance.audit",
+    "capability_id":   "run_iso27001_audit",
+    "domain":          "compliance",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run an ISO 27001 information security management compliance audit against the cloud environment.",
+    "description": "Evaluates the cloud environment against ISO 27001 Annex A controls. Use ONLY for ISO 27001 compliance requests. Not for SOC 2, HIPAA, GDPR, or PCI audits.",
+
+    "capabilities": [
+      "evaluate AWS infrastructure against ISO 27001 Annex A security controls",
+      "evaluate Azure infrastructure against ISO 27001 information security requirements",
+      "produce structured compliance report with per-control findings"
+    ],
+
+    "context_descriptions": [
+      "account scope — AWS profile or Azure subscription-name to audit",
+      "compliance framework — ISO 27001 Annex A control set"
+    ],
+
+    "context_builder_ids": ["compliance.iso27001_context"],
+    "tool_ids": ["aws.run_iso27001_audit", "azure.run_iso27001_audit"],
+    "supported_context_types": ["account_scope", "compliance_framework"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["compliance_read"],
+      "preferred_tool_tags":  ["iso", "iso27001", "information-security", "compliance", "audit"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "run_iso27001_checks",
+          "context_type": "compliance_framework",
+          "tool_class":   "compliance_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "compliance_report",
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "artifact_effects": { "can_create": ["compliance_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "compliance.hipaa_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "compliance.hipaa_audit",
+    "display_name":    "HIPAA Security Rule Audit",
+    "client_action_type": "hipaa",
+    "owner_agent_id":  "domain.compliance.audit",
+    "capability_id":   "run_hipaa_audit",
+    "domain":          "compliance",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run a HIPAA Security Rule compliance audit against the cloud environment for PHI data protection.",
+    "description": "Evaluates against HIPAA Security Rule requirements for protected health information. Use ONLY for HIPAA compliance requests. Not for SOC 2, ISO 27001, GDPR, or PCI audits.",
+
+    "capabilities": [
+      "evaluate AWS infrastructure against HIPAA Security Rule safeguards",
+      "evaluate Azure infrastructure against HIPAA PHI data protection requirements",
+      "produce structured HIPAA compliance report with per-safeguard findings"
+    ],
+
+    "context_descriptions": [
+      "account scope — AWS profile or Azure subscription-name to audit",
+      "compliance framework — HIPAA Security Rule safeguard control set"
+    ],
+
+    "context_builder_ids": ["compliance.hipaa_context"],
+    "tool_ids": ["aws.run_hipaa_audit", "azure.run_hipaa_audit"],
+    "supported_context_types": ["account_scope", "compliance_framework"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["compliance_read"],
+      "preferred_tool_tags":  ["hipaa", "healthcare", "phi", "compliance", "audit"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "run_hipaa_checks",
+          "context_type": "compliance_framework",
+          "tool_class":   "compliance_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "compliance_report",
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "artifact_effects": { "can_create": ["compliance_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "compliance.gdpr_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "compliance.gdpr_audit",
+    "display_name":    "GDPR Compliance Audit",
+    "client_action_type": "gdpr",
+    "owner_agent_id":  "domain.compliance.audit",
+    "capability_id":   "run_gdpr_audit",
+    "domain":          "compliance",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run a GDPR data protection compliance audit against the cloud environment.",
+    "description": "Evaluates against GDPR data protection requirements for personal data and privacy. Use ONLY for GDPR compliance requests. Not for SOC 2, ISO 27001, HIPAA, or PCI audits.",
+
+    "capabilities": [
+      "evaluate AWS infrastructure against GDPR data protection requirements",
+      "evaluate Azure infrastructure against GDPR privacy and data security requirements",
+      "produce structured GDPR compliance report with per-article findings"
+    ],
+
+    "context_descriptions": [
+      "account scope — AWS profile or Azure subscription-name to audit",
+      "compliance framework — GDPR data protection article control set"
+    ],
+
+    "context_builder_ids": ["compliance.gdpr_context"],
+    "tool_ids": ["aws.run_gdpr_audit", "azure.run_gdpr_audit"],
+    "supported_context_types": ["account_scope", "compliance_framework"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["compliance_read"],
+      "preferred_tool_tags":  ["gdpr", "privacy", "data-protection", "eu", "compliance", "audit"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "run_gdpr_checks",
+          "context_type": "compliance_framework",
+          "tool_class":   "compliance_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "compliance_report",
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "artifact_effects": { "can_create": ["compliance_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "security.iam_access_path",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "security.iam_access_path",
+    "display_name":    "IAM Access Path Analyzer",
+    "client_action_type": "iam_access_path",
+    "owner_agent_id":  "domain.security.iam",
+    "capability_id":   "analyze_iam_access_paths",
+    "domain":          "security",
+    "tier":            "advanced",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Analyze IAM trust chains and privilege escalation paths across AWS or Azure to surface cross-account access risks.",
+    "description": "Maps IAM trust relationships, role-chaining paths, and privilege escalation vectors. Use for: IAM trust chain, role chaining, privilege escalation paths, cross-account access risks, assume-role reachability, Azure RBAC privilege escalation. NOT for general IAM security audit (use iam_security_audit for that).",
+
+    "capabilities": [
+      "map IAM role trust relationships and assume-role reachability across an AWS account",
+      "detect privilege escalation paths through IAM role chaining",
+      "identify cross-account access risks and transitive trust vulnerabilities",
+      "analyze Azure RBAC role assignments for privilege escalation vectors"
+    ],
+
+    "context_descriptions": [
+      "IAM trust graph — all IAM roles, trust policies, and assume-role relationships",
+      "privilege escalation paths — role chaining sequences that elevate permissions",
+      "cross-account trust — external account IDs that can assume roles in this account",
+      "Azure RBAC assignments — role definitions and managed identity bindings"
+    ],
+
+    "context_builder_ids": ["security.iam_access_path_context"],
+    "tool_ids": ["aws.analyze_iam_access_paths", "azure.analyze_rbac_paths"],
+    "supported_context_types": ["iam_trust_graph", "privilege_escalation_inventory", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["iam_read"],
+      "preferred_tool_tags":  ["iam", "trust", "role", "privilege", "escalation", "cross-account", "azure-rbac"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "fetch_iam_trust_graph",
+          "context_type": "iam_trust_graph",
+          "tool_class":   "iam_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "analyze_escalation_paths",
+          "context_type": "privilege_escalation_inventory",
+          "tool_class":   "iam_read",
+          "depends_on":   ["fetch_iam_trust_graph"],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "finding",
+    "output_schema_ref": "schemas/iam_access_path_finding.yaml",
+    "artifact_effects": { "can_create": ["finding"], "can_update": [], "can_enrich": ["triage"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": true, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "security.iam_security_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "security.iam_security_audit",
+    "display_name":    "IAM Security Audit",
+    "client_action_type": "audit_iam",
+    "owner_agent_id":  "domain.security.iam",
+    "capability_id":   "audit_iam_security",
+    "domain":          "security",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run a comprehensive IAM security audit covering users, roles, MFA, access keys, and policies for AWS or Azure.",
+    "description": "Audits IAM for security misconfigurations. Use for: MFA enforcement, stale/unused access keys, inactive users, wildcard policies, admin role assignments, broad trust policies, password policy, Azure RBAC audit, managed identity checks, Key Vault access. NOT for IAM trust chain or privilege escalation analysis (use iam_access_path for that).",
+
+    "capabilities": [
+      "detect users without MFA and root account without hardware MFA",
+      "find stale, unused, or overly-permissive IAM access keys",
+      "identify inactive IAM users and unrotated credentials",
+      "detect wildcard (*) actions in IAM policies and overly broad admin roles",
+      "audit Azure RBAC assignments, managed identities, and Key Vault access policies"
+    ],
+
+    "context_descriptions": [
+      "IAM user inventory — all users, MFA status, last activity, and access key age",
+      "IAM policy inventory — managed and inline policies with overly-permissive patterns",
+      "IAM role inventory — roles, trust relationships, and cross-account assumptions",
+      "Azure RBAC assignments — role definitions and managed identity bindings"
+    ],
+
+    "context_builder_ids": ["security.iam_audit_context"],
+    "tool_ids": ["aws.audit_iam_security", "azure.audit_rbac_security"],
+    "supported_context_types": ["iam_user_inventory", "iam_policy_inventory", "iam_role_inventory", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["iam_read"],
+      "preferred_tool_tags":  ["iam", "audit", "mfa", "access-keys", "policy", "security"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "audit_iam_users",
+          "context_type": "iam_user_inventory",
+          "tool_class":   "iam_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "audit_iam_policies",
+          "context_type": "iam_policy_inventory",
+          "tool_class":   "iam_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "audit_iam_roles",
+          "context_type": "iam_role_inventory",
+          "tool_class":   "iam_read",
+          "depends_on":   ["audit_iam_users"],
+          "required":     false,
+          "on_failure":   "skip"
+        }
+      ],
+      "on_partial_failure": "continue"
+    },
+
+    "output_type":       "finding",
+    "output_schema_ref": "schemas/iam_security_finding.yaml",
+    "artifact_effects": { "can_create": ["finding"], "can_update": [], "can_enrich": ["triage"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": true, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "security.encryption_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "security.encryption_audit",
+    "display_name":    "Encryption Coverage Audit",
+    "client_action_type": "audit_encryption",
+    "owner_agent_id":  "domain.security.encryption",
+    "capability_id":   "audit_encryption_coverage",
+    "domain":          "security",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run a comprehensive encryption coverage audit across storage, databases, key management, and network transit for AWS or Azure.",
+    "description": "Audits encryption at rest and in transit. Use for: S3/EBS/RDS/EFS encryption, KMS key rotation, ELB HTTPS enforcement, Azure storage HTTPS-only, managed disk encryption, SQL TDE, PostgreSQL/MySQL SSL, Key Vault configuration, App Service TLS.",
+
+    "capabilities": [
+      "detect unencrypted S3 buckets and missing HTTPS-only policies",
+      "find EBS volumes and snapshots without encryption, verify default encryption",
+      "check RDS instances for encryption at rest and SSL enforcement",
+      "verify KMS key rotation and detect keys pending deletion",
+      "audit Azure storage, managed disks, SQL TDE, and Key Vault configuration"
+    ],
+
+    "context_descriptions": [
+      "storage encryption inventory — S3, EBS, Azure storage account encryption settings",
+      "database encryption inventory — RDS, SQL TDE, PostgreSQL/MySQL SSL",
+      "key management inventory — KMS key rotation, Azure Key Vault soft delete and purge protection",
+      "in-transit enforcement — ELB HTTPS listeners, App Service TLS, S3 bucket policies"
+    ],
+
+    "context_builder_ids": ["security.encryption_audit_context"],
+    "tool_ids": ["aws.audit_encryption_coverage", "azure.audit_encryption_coverage"],
+    "supported_context_types": ["storage_encryption_inventory", "database_encryption_inventory", "key_management_inventory", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["inventory_read"],
+      "preferred_tool_tags":  ["encryption", "kms", "tls", "https", "s3", "ebs", "rds", "ssl"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "audit_storage_encryption",
+          "context_type": "storage_encryption_inventory",
+          "tool_class":   "inventory_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "audit_database_encryption",
+          "context_type": "database_encryption_inventory",
+          "tool_class":   "inventory_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "audit_key_management",
+          "context_type": "key_management_inventory",
+          "tool_class":   "inventory_read",
+          "depends_on":   ["audit_storage_encryption"],
+          "required":     false,
+          "on_failure":   "skip"
+        }
+      ],
+      "on_partial_failure": "continue"
+    },
+
+    "output_type":       "finding",
+    "output_schema_ref": "schemas/encryption_finding.yaml",
+    "artifact_effects": { "can_create": ["finding"], "can_update": [], "can_enrich": ["triage"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": true, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "compliance.pci_dss_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "compliance.pci_dss_audit",
+    "display_name":    "PCI-DSS v4.0 Compliance Checker",
+    "client_action_type": "pci_dss_checker",
+    "owner_agent_id":  "domain.compliance.audit",
+    "capability_id":   "run_pci_dss_audit",
+    "domain":          "compliance",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Run a PCI-DSS v4.0 compliance audit against the AWS environment covering network security, cardholder data protection, access control, logging, and vulnerability management.",
+    "description": "Evaluates AWS against PCI-DSS v4.0. AWS only — no Azure support. Covers: network segmentation (Req 1), cardholder data (Req 3 & 4), access control (Req 7 & 8), logging (Req 10), vulnerability management (Req 6 & 11). Not for SOC 2, ISO, HIPAA, or GDPR.",
+
+    "capabilities": [
+      "evaluate AWS network security controls against PCI-DSS Requirement 1",
+      "check cardholder data protection for Requirements 3 and 4 (encryption, TLS)",
+      "audit access controls for Requirements 7 and 8 (least privilege, MFA, IAM)",
+      "verify audit logging for Requirement 10 (CloudTrail, GuardDuty, VPC flow logs)",
+      "assess vulnerability management for Requirements 6 and 11"
+    ],
+
+    "context_descriptions": [
+      "network security controls — security groups, NACLs, VPC flow logs",
+      "cardholder data protection — encryption at rest and in transit, TLS, KMS",
+      "access control inventory — IAM policies, MFA, least-privilege role assignments",
+      "audit logging configuration — CloudTrail, GuardDuty, CloudWatch alarms"
+    ],
+
+    "context_builder_ids": ["compliance.pci_dss_context"],
+    "tool_ids": ["aws.run_pci_dss_audit"],
+    "supported_context_types": ["network_security_inventory", "data_protection_inventory", "access_control_inventory", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["compliance_read"],
+      "preferred_tool_tags":  ["pci", "pci-dss", "cardholder", "compliance", "audit", "payment"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "run_pci_dss_checks",
+          "context_type": "network_security_inventory",
+          "tool_class":   "compliance_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        }
+      ],
+      "on_partial_failure": "fail"
+    },
+
+    "output_type":       "compliance_report",
+    "output_schema_ref": "schemas/pci_dss_report.yaml",
+    "artifact_effects": { "can_create": ["compliance_report"], "can_update": [], "can_enrich": ["finding"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": false, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  },
+
+  {
+    "_id": "security.network_exposure_audit",
+    "_version": "0.1.0",
+    "_created_at": "2024-01-01T00:00:00Z",
+    "_updated_at": "2024-01-01T00:00:00Z",
+
+    "skill_id":        "security.network_exposure_audit",
+    "display_name":    "Network Exposure Audit",
+    "client_action_type": "network_exposure",
+    "owner_agent_id":  "domain.security.exposure",
+    "capability_id":   "audit_network_exposure",
+    "domain":          "security",
+    "tier":            "basic",
+    "status":          "active",
+    "tenant_id":       null,
+
+    "purpose":     "Scan for cloud resources directly or indirectly reachable from the internet and produce a structured exposure report.",
+    "description": "Audits internet-facing resources and network misconfigurations. Use for: network exposure audit, internet-reachable resources, open security groups, open NSGs, SSH/RDP open to internet, public RDS, public S3, internet-facing load balancers, IMDSv2, Lambda unauthenticated URLs, EKS public API server, OpenSearch public endpoint, VPC flow logs, Azure VM public ingress, Azure NSG findings, Azure PaaS public access. Supports raw or presentation format.",
+
+    "capabilities": [
+      "detect EC2 instances with public IP and open inbound security group rules (SSH, RDP, 0.0.0.0/0)",
+      "find RDS instances with PubliclyAccessible=true and internet-facing ELBs without WAF",
+      "identify S3 buckets with public ACLs or bucket policies allowing anonymous access",
+      "check IMDSv2 enforcement and Lambda function URLs without authentication",
+      "audit Azure VMs, NSGs, PaaS services, and AKS for public network access"
+    ],
+
+    "context_descriptions": [
+      "security group and NSG rules — inbound rules with 0.0.0.0/0 on sensitive ports",
+      "public resource inventory — EC2, RDS, ELB, Lambda, EKS, OpenSearch with internet-facing config",
+      "storage public access — S3 ACLs, bucket policies, Azure storage public access settings",
+      "VPC configuration — internet gateway associations, public subnets, VPC flow log status"
+    ],
+
+    "context_builder_ids": ["security.network_exposure_context"],
+    "tool_ids": ["aws.describe_public_ingress_surface", "azure.describe_public_ingress_surface"],
+    "supported_context_types": ["network_security_inventory", "public_exposure_inventory", "resource_scope_summary", "account_scope"],
+
+    "tool_affinity": {
+      "allowed_tool_classes": ["inventory_read"],
+      "preferred_tool_tags":  ["network", "exposure", "public", "ingress", "ssh", "rdp", "security-group", "nsg"],
+      "execution_locations":  ["client"]
+    },
+
+    "execution_plan": {
+      "steps": [
+        {
+          "step_id":      "fetch_security_group_rules",
+          "context_type": "network_security_inventory",
+          "tool_class":   "inventory_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "fetch_public_resource_inventory",
+          "context_type": "public_exposure_inventory",
+          "tool_class":   "inventory_read",
+          "depends_on":   [],
+          "required":     true,
+          "on_failure":   "stop"
+        },
+        {
+          "step_id":      "fetch_resource_scope",
+          "context_type": "resource_scope_summary",
+          "tool_class":   "inventory_read",
+          "depends_on":   ["fetch_public_resource_inventory"],
+          "required":     false,
+          "on_failure":   "skip"
+        }
+      ],
+      "on_partial_failure": "continue"
+    },
+
+    "output_type":       "finding",
+    "output_schema_ref": "schemas/network_exposure_finding.yaml",
+    "artifact_effects": { "can_create": ["finding"], "can_update": [], "can_enrich": ["triage"] },
+    "action_semantics": { "can_request_execution": false, "can_generate_plan_fragments": true, "can_generate_bundle_hints": false, "can_generate_playbook_candidates": true },
+    "safety":   { "safety_class": "advisory", "requires_human_review_for": [] },
+    "evidence": { "emits_rationale": true, "emits_confidence": true }
+  }
+]

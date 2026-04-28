@@ -74,14 +74,20 @@ class SurrealAssetStore(AssetStore):
         #
         # The <|K,EF|> operator uses the HNSW index; it never scans the full table.
         # EF=40 is a typical recall/speed tradeoff — raise it for higher recall.
-        query = f"""
+        query_old = f"""
             SELECT *, vector::similarity::cosine(embedding, $vec) AS score
             FROM {table}
             {where}
             ORDER BY score DESC
             LIMIT {limit}
         """
-
+        query = f"""
+            SELECT *, vector::similarity::cosine(embedding, $vec) AS score
+            FROM {table}
+            {where}
+                AND embedding <|{limit},40|> $vec   -- HNSW KNN: K neighbours, EF=40
+            ORDER BY score DESC LIMIT {limit}
+        """
         async with get_db() as db:
             rows = await db.query(query, {"vec": vec}) or []
 

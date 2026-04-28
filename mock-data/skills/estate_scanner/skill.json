@@ -1,0 +1,89 @@
+{
+  "_id": "operations.estate_scanner",
+  "_version": "0.1.0",
+  "_created_at": "2024-01-01T00:00:00Z",
+  "_updated_at": "2024-01-01T00:00:00Z",
+  "skill_id": "operations.estate_scanner",
+  "display_name": "AWS Estate Scanner",
+  "client_action_type": "estate_scanner",
+  "owner_agent_id": "domain.operations.discovery",
+  "capability_id": "scan_cloud_estate",
+  "domain": "operations",
+  "tier": "basic",
+  "status": "active",
+  "tenant_id": null,
+  "purpose": "Trigger a scan to refresh the local estate cache from cloud APIs with no result expected back.",
+  "description": "Initiates AWS estate discovery to refresh the local resource inventory. Use ONLY when user's intent is to refresh/sync data with no result expected \u2014 e.g. 'scan my AWS account', 'refresh my estate'. If user expects data back, route to the appropriate data-return skill instead.",
+  "capabilities": [
+    "trigger full AWS estate discovery scan across all supported resource types",
+    "trigger incremental estate sync to update changed resources only",
+    "refresh the local Context Manager estate cache from live cloud APIs"
+  ],
+  "context_descriptions": [
+    "scan target \u2014 full or incremental scan mode",
+    "account scope \u2014 AWS profile to scan"
+  ],
+  "context_builder_ids": [
+    "operations.estate_scan_context"
+  ],
+  "tool_ids": [
+    "aws.scan_estate"
+  ],
+  "supported_context_types": [
+    "scan_target",
+    "account_scope"
+  ],
+  "tool_affinity": {
+    "allowed_tool_classes": [
+      "inventory_read"
+    ],
+    "preferred_tool_tags": [
+      "scan",
+      "discover",
+      "estate",
+      "refresh",
+      "sync"
+    ],
+    "execution_locations": [
+      "client"
+    ]
+  },
+  "execution_plan": {
+    "steps": [
+      {
+        "step_id": "trigger_estate_scan",
+        "context_type": "scan_target",
+        "tool_class": "inventory_read",
+        "depends_on": [],
+        "required": true,
+        "on_failure": "stop"
+      }
+    ],
+    "on_partial_failure": "fail"
+  },
+  "output_type": "scan_status",
+  "output_schema_ref": "schemas/scan_status.yaml",
+  "artifact_effects": {
+    "can_create": [
+      "scan_status"
+    ],
+    "can_update": [
+      "estate_index"
+    ],
+    "can_enrich": []
+  },
+  "action_semantics": {
+    "can_request_execution": false,
+    "can_generate_plan_fragments": false,
+    "can_generate_bundle_hints": false,
+    "can_generate_playbook_candidates": false
+  },
+  "safety": {
+    "safety_class": "advisory",
+    "requires_human_review_for": []
+  },
+  "evidence": {
+    "emits_rationale": false,
+    "emits_confidence": false
+  }
+}

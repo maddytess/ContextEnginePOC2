@@ -1,0 +1,83 @@
+schema_version: 1
+
+agent_id: domain.mock.catalog
+name: catalog
+display_name: Mock Multi-Domain Skill Catalog
+agent_type: domain
+status: active
+
+owner:
+  team: platform-engineering
+  contact: platform@mock.internal
+
+purpose: Combined mock skill catalog covering billing, operations, security, and compliance for testing semantic routing.
+description: >
+  Umbrella catalog aggregating skills across billing cost queries, infrastructure monitoring,
+  audit event lookup, estate scanning, compliance audits (SOC 2, ISO 27001, HIPAA, GDPR, PCI-DSS),
+  IAM security analysis, encryption coverage, and network exposure detection.
+  Used for POC semantic search and routing validation only.
+
+classification:
+  domain: mock
+  product_scope: horizontal
+  tier_support: [basic, advanced]
+
+capabilities:
+  - query cloud billing costs by service, time range, and granularity
+  - monitor infrastructure metrics and evaluate threshold conditions
+  - query audit event history for who did what and when
+  - trigger estate discovery scans to refresh the local inventory
+  - run SOC 2 Trust Service Criteria compliance audits
+  - run ISO 27001 Annex A information security audits
+  - run HIPAA Security Rule compliance audits
+  - run GDPR data protection compliance audits
+  - run PCI-DSS v4.0 compliance audits
+  - analyze IAM trust chains and privilege escalation paths
+  - audit IAM users roles policies and access keys for misconfigurations
+  - audit encryption coverage across storage databases and key management
+  - detect internet-facing resources and network exposure risks
+
+skills:
+  exported_skill_ids:
+    - billing.cost_query
+    - operations.infrastructure_monitor
+    - security.cloudtrail_events
+    - operations.estate_scanner
+    - compliance.soc2_audit
+    - compliance.iso27001_audit
+    - compliance.hipaa_audit
+    - compliance.gdpr_audit
+    - security.iam_access_path
+    - security.iam_security_audit
+    - security.encryption_audit
+    - compliance.pci_dss_audit
+    - security.network_exposure_audit
+  hidden_skill_ids: []
+
+tool_access:
+  readonly_tools:
+    allowed_tool_classes:
+      - billing_read
+      - metrics_read
+      - audit_read
+      - inventory_read
+      - compliance_read
+      - iam_read
+    preferred_tool_tags:
+      - aws
+      - azure
+    execution_locations: [client]
+
+artifacts:
+  can_read: [estate_view, report, finding]
+  can_create: [finding, report, compliance_report, cost_report, metric_report, audit_event_report, scan_status]
+  can_update: []
+  can_enrich: [evidence, triage]
+
+policy:
+  safety_class: advisory
+  requires_human_review_for: []
+  prohibited_actions: []
+
+versioning:
+  version: "0.1.0"

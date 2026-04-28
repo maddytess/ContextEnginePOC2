@@ -1,0 +1,49 @@
+{
+  "tool_id": "azure.run_gdpr_audit",
+  "name": "Azure GDPR Compliance Audit",
+  "tool_class": "compliance_read",
+  "tool_type": "readonly",
+  "domain": [
+    "compliance"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Evaluate Azure infrastructure against GDPR data protection and privacy requirements, returning a structured compliance report.",
+  "auth": null,
+  "output_schema_ref": "schemas/compliance_report.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "Microsoft.Storage/storageAccounts",
+    "Microsoft.Sql/servers",
+    "Microsoft.KeyVault/vaults",
+    "Microsoft.Insights/diagnosticSettings",
+    "Microsoft.Authorization/roleAssignments"
+  ],
+  "api_calls": [
+    "Microsoft.Storage/storageAccounts/read",
+    "Microsoft.Sql/servers/read",
+    "Microsoft.KeyVault/vaults/read",
+    "Microsoft.Insights/diagnosticSettings/read",
+    "Microsoft.Authorization/roleAssignments/read"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "scope",
+        "type": "string",
+        "required": false,
+        "description": "all \u2014 full account audit"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 60,
+  "version": "0.1.0",
+  "tenant_id": null
+}

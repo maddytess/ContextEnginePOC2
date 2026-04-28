@@ -5,7 +5,10 @@ from .models import (
     SkillManifestYaml, ToolManifestYaml, ValidationResult,
 )
 
-_VALID_OUTPUT_TYPES = {"finding", "report", "plan", "triage", "closure_summary"}
+_VALID_OUTPUT_TYPES = {
+    "finding", "report", "plan", "triage", "closure_summary",
+    "cost_report", "metric_report", "scan_status", "audit_event_report", "compliance_report",
+}
 _VALID_EXEC_LOCATIONS = {"client", "server", "hybrid"}
 _WRITE_TOOL_CLASSES = {"action_write", "supervised_write", "automated_write"}
 _READONLY_TOOL_CLASSES = {"inventory_read", "configuration_read", "report_generation", "log_read", "metric_read"}

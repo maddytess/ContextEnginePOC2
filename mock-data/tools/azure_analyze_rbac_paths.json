@@ -1,0 +1,51 @@
+{
+  "tool_id": "azure.analyze_rbac_paths",
+  "name": "Azure RBAC Privilege Path Analyzer",
+  "tool_class": "iam_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Analyze Azure RBAC role assignments, managed identity bindings, and privilege escalation vectors.",
+  "auth": null,
+  "output_schema_ref": "schemas/iam_access_path_finding.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "Microsoft.Authorization/roleAssignments",
+    "Microsoft.Authorization/roleDefinitions",
+    "Microsoft.ManagedIdentity/userAssignedIdentities"
+  ],
+  "api_calls": [
+    "Microsoft.Authorization/roleAssignments/read",
+    "Microsoft.Authorization/roleDefinitions/read",
+    "Microsoft.ManagedIdentity/userAssignedIdentities/read"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "source_arn",
+        "type": "string",
+        "required": false,
+        "description": "source principal or managed identity to trace from \u2014 empty for all"
+      },
+      {
+        "name": "subscription",
+        "type": "string",
+        "required": false,
+        "description": "Azure subscription name or empty"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 45,
+  "version": "0.1.0",
+  "tenant_id": null
+}

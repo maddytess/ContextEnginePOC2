@@ -1,0 +1,54 @@
+{
+  "tool_id": "azure.audit_encryption_coverage",
+  "name": "Azure Encryption Coverage Audit",
+  "tool_class": "inventory_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Audit encryption at rest and in transit across Azure Storage, managed disks, SQL TDE, PostgreSQL/MySQL SSL, and Key Vault.",
+  "auth": null,
+  "output_schema_ref": "schemas/encryption_finding.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "Microsoft.Storage/storageAccounts",
+    "Microsoft.Compute/disks",
+    "Microsoft.Sql/servers",
+    "Microsoft.DBforPostgreSQL/servers",
+    "Microsoft.DBforMySQL/servers",
+    "Microsoft.KeyVault/vaults",
+    "Microsoft.Web/sites"
+  ],
+  "api_calls": [
+    "Microsoft.Storage/storageAccounts/read",
+    "Microsoft.Compute/disks/read",
+    "Microsoft.Sql/servers/read",
+    "Microsoft.Sql/servers/databases/transparentDataEncryption/read",
+    "Microsoft.DBforPostgreSQL/servers/read",
+    "Microsoft.DBforMySQL/servers/read",
+    "Microsoft.KeyVault/vaults/read",
+    "Microsoft.Web/sites/read"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "scope",
+        "type": "string",
+        "required": false,
+        "description": "all \u2014 full encryption audit"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 45,
+  "version": "0.1.0",
+  "tenant_id": null
+}

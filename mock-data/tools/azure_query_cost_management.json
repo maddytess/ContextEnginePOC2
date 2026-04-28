@@ -1,0 +1,71 @@
+{
+  "tool_id": "azure.query_cost_management",
+  "name": "Azure Cost Management Query",
+  "tool_class": "billing_read",
+  "tool_type": "readonly",
+  "domain": [
+    "billing"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Query Azure Cost Management for cost and usage data by time range, service, granularity, and cost metric.",
+  "auth": null,
+  "output_schema_ref": "schemas/cost_report.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "Microsoft.CostManagement/query"
+  ],
+  "api_calls": [
+    "Microsoft.CostManagement/query/action"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "metric",
+        "type": "string",
+        "required": true,
+        "description": "ActualCost | AmortizedCost \u2014 default ActualCost"
+      },
+      {
+        "name": "service",
+        "type": "string",
+        "required": false,
+        "description": "Azure service name or empty for all services"
+      },
+      {
+        "name": "granularity",
+        "type": "string",
+        "required": true,
+        "description": "Monthly | Daily \u2014 default Monthly"
+      },
+      {
+        "name": "subscriptions",
+        "type": "string",
+        "required": false,
+        "description": "Azure subscription name or empty"
+      },
+      {
+        "name": "start",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to 30 days ago"
+      },
+      {
+        "name": "end",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to today"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 30,
+  "version": "0.1.0",
+  "tenant_id": null
+}

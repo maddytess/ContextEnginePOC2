@@ -1,0 +1,53 @@
+{
+  "tool_id": "azure.describe_public_ingress_surface",
+  "name": "Azure Public Ingress Surface Scan",
+  "tool_class": "inventory_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Scan for Azure resources reachable from the internet \u2014 VMs, NSGs, PaaS services, AKS, and storage public access settings.",
+  "auth": null,
+  "output_schema_ref": "schemas/network_exposure_finding.yaml",
+  "cacheable": false,
+  "resource_types": [
+    "Microsoft.Compute/virtualMachines",
+    "Microsoft.Network/networkSecurityGroups",
+    "Microsoft.Network/publicIPAddresses",
+    "Microsoft.Storage/storageAccounts",
+    "Microsoft.ContainerService/managedClusters",
+    "Microsoft.Network/applicationGateways",
+    "Microsoft.Web/sites"
+  ],
+  "api_calls": [
+    "Microsoft.Compute/virtualMachines/read",
+    "Microsoft.Network/networkSecurityGroups/read",
+    "Microsoft.Network/publicIPAddresses/read",
+    "Microsoft.Storage/storageAccounts/read",
+    "Microsoft.ContainerService/managedClusters/read",
+    "Microsoft.Network/applicationGateways/read",
+    "Microsoft.Web/sites/read"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "resource_type",
+        "type": "string",
+        "required": false,
+        "description": "vm | aks | all \u2014 default all"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 45,
+  "version": "0.1.0",
+  "tenant_id": null
+}

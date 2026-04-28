@@ -1,0 +1,89 @@
+{
+  "tool_id": "azure.query_activity_log",
+  "name": "Azure Activity Log Query",
+  "tool_class": "audit_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Query Azure Activity Log for resource operation history \u2014 who did what, when, with resource provider and subscription scoping.",
+  "auth": null,
+  "output_schema_ref": "schemas/audit_event_report.yaml",
+  "cacheable": false,
+  "resource_types": [
+    "Microsoft.Insights/ActivityLog"
+  ],
+  "api_calls": [
+    "Microsoft.Insights/eventtypes/values/read"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "resource_providers",
+        "type": "string",
+        "required": false,
+        "description": "Azure resource provider e.g. Microsoft.Compute \u2014 empty for all"
+      },
+      {
+        "name": "operation_name",
+        "type": "string",
+        "required": false,
+        "description": "operation type e.g. write, delete, action \u2014 empty for all"
+      },
+      {
+        "name": "caller",
+        "type": "string",
+        "required": false,
+        "description": "user or service principal who performed the action \u2014 empty for all"
+      },
+      {
+        "name": "resource_group",
+        "type": "string",
+        "required": false,
+        "description": "Azure resource group name \u2014 empty for all"
+      },
+      {
+        "name": "start_time",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to 30 days ago"
+      },
+      {
+        "name": "end_time",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to today"
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "required": false,
+        "description": "operation status e.g. Failed, Succeeded \u2014 empty for all"
+      },
+      {
+        "name": "correlation_id",
+        "type": "string",
+        "required": false,
+        "description": "correlation ID for tracing a specific operation \u2014 empty for none"
+      },
+      {
+        "name": "subscription",
+        "type": "string",
+        "required": false,
+        "description": "Azure subscription name or empty"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 30,
+  "version": "0.1.0",
+  "tenant_id": null
+}

@@ -1,0 +1,61 @@
+{
+  "tool_id": "aws.run_soc2_audit",
+  "name": "AWS SOC 2 Compliance Audit",
+  "tool_class": "compliance_read",
+  "tool_type": "readonly",
+  "domain": [
+    "compliance"
+  ],
+  "provider": "aws",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Evaluate AWS infrastructure against SOC 2 Trust Service Criteria and return a structured compliance report.",
+  "auth": null,
+  "output_schema_ref": "schemas/compliance_report.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "AWS::IAM::User",
+    "AWS::IAM::Role",
+    "AWS::CloudTrail::Trail",
+    "AWS::Config::ConfigurationRecorder",
+    "AWS::CloudWatch::Alarm",
+    "AWS::EC2::SecurityGroup",
+    "AWS::S3::Bucket",
+    "AWS::KMS::Key"
+  ],
+  "api_calls": [
+    "iam:ListUsers",
+    "iam:GetAccountPasswordPolicy",
+    "cloudtrail:DescribeTrails",
+    "config:DescribeConfigurationRecorders",
+    "cloudwatch:DescribeAlarms",
+    "ec2:DescribeSecurityGroups",
+    "s3:GetBucketEncryption",
+    "kms:ListKeys"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "scope",
+        "type": "string",
+        "required": false,
+        "description": "all \u2014 full account audit"
+      },
+      {
+        "name": "region",
+        "type": "string",
+        "required": false,
+        "description": "AWS region or empty for all regions"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "AWS profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 60,
+  "version": "0.1.0",
+  "tenant_id": null
+}

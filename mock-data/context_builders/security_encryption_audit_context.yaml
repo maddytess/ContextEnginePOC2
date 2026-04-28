@@ -1,0 +1,34 @@
+context_builder_id: security.encryption_audit_context
+name: encryption_audit_context
+display_name: Encryption Audit Context
+domain: security
+data_type: encryption_coverage_inventory
+provider: shared
+status: active
+tenant_id: null
+
+purpose: "Gather storage, database, and key management encryption settings for comprehensive encryption coverage audit."
+output_schema_ref: schemas/encryption_coverage_inventory.yaml
+
+collection_units:
+  - unit_id: fetch_encryption_inventory
+    purpose: "collect S3 EBS RDS KMS and in-transit enforcement settings"
+    required: true
+    context_type: storage_encryption_inventory
+    preferred_tool_classes: [inventory_read]
+    preferred_tool_tags: [encryption, kms, tls, https, s3, ebs, rds]
+    execution_locations: [client]
+    freshness_window: 2h
+    cache_policy: refresh_if_stale
+    normalization_schema_ref: schemas/encryption_coverage_inventory.yaml
+
+orchestration:
+  merge_strategy: union
+  dedupe_keys: [account_scope]
+  max_parallel_units: 2
+
+fallbacks:
+  on_missing_required_context: request_more
+  fallback_probe_policy: allowed_with_review
+
+version: "0.1.0"

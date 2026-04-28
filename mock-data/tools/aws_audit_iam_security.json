@@ -1,0 +1,60 @@
+{
+  "tool_id": "aws.audit_iam_security",
+  "name": "AWS IAM Security Audit",
+  "tool_class": "iam_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "aws",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Audit IAM for security misconfigurations \u2014 MFA enforcement, stale access keys, inactive users, wildcard policies, and overly broad trust relationships.",
+  "auth": null,
+  "output_schema_ref": "schemas/iam_security_finding.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "AWS::IAM::User",
+    "AWS::IAM::Role",
+    "AWS::IAM::Policy",
+    "AWS::IAM::AccessKey",
+    "AWS::IAM::MFADevice"
+  ],
+  "api_calls": [
+    "iam:ListUsers",
+    "iam:GetLoginProfile",
+    "iam:ListMFADevices",
+    "iam:ListAccessKeys",
+    "iam:GetAccessKeyLastUsed",
+    "iam:ListRoles",
+    "iam:ListPolicies",
+    "iam:GetPolicyVersion",
+    "iam:GetAccountPasswordPolicy",
+    "iam:GetAccountSummary"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "scope",
+        "type": "string",
+        "required": false,
+        "description": "all \u2014 full IAM audit"
+      },
+      {
+        "name": "region",
+        "type": "string",
+        "required": false,
+        "description": "AWS region or empty (IAM is global)"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "AWS profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 60,
+  "version": "0.1.0",
+  "tenant_id": null
+}

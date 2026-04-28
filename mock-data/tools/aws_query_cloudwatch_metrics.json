@@ -1,0 +1,91 @@
+{
+  "tool_id": "aws.query_cloudwatch_metrics",
+  "name": "AWS CloudWatch Metrics Query",
+  "tool_class": "metrics_read",
+  "tool_type": "readonly",
+  "domain": [
+    "operations"
+  ],
+  "provider": "aws",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Query AWS CloudWatch for infrastructure metrics \u2014 CPU, memory, disk, network \u2014 with dimension and threshold filtering.",
+  "auth": null,
+  "output_schema_ref": "schemas/metric_report.yaml",
+  "cacheable": false,
+  "resource_types": [
+    "AWS::CloudWatch::Metric"
+  ],
+  "api_calls": [
+    "cloudwatch:GetMetricStatistics",
+    "cloudwatch:ListMetrics",
+    "cloudwatch:DescribeAlarms"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "metric_namespace",
+        "type": "string",
+        "required": true,
+        "description": "CloudWatch namespace e.g. AWS/EC2, AWS/RDS, AWS/Lambda"
+      },
+      {
+        "name": "metric_name",
+        "type": "string",
+        "required": true,
+        "description": "CloudWatch metric e.g. CPUUtilization, FreeStorageSpace, Errors"
+      },
+      {
+        "name": "resource_id",
+        "type": "string",
+        "required": false,
+        "description": "specific instance ID, DB identifier, or resource name \u2014 empty for all"
+      },
+      {
+        "name": "period",
+        "type": "integer",
+        "required": true,
+        "description": "aggregation period in seconds e.g. 3600 for 1h, 86400 for 1d \u2014 default 3600"
+      },
+      {
+        "name": "stats",
+        "type": "string",
+        "required": true,
+        "description": "Average | Maximum | Sum \u2014 default Average"
+      },
+      {
+        "name": "threshold",
+        "type": "string",
+        "required": false,
+        "description": "threshold condition e.g. >80, <20 \u2014 empty if no threshold"
+      },
+      {
+        "name": "start",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to 24h ago"
+      },
+      {
+        "name": "end",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to today"
+      },
+      {
+        "name": "region",
+        "type": "string",
+        "required": false,
+        "description": "AWS region or empty for default region"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "AWS profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 30,
+  "version": "0.1.0",
+  "tenant_id": null
+}

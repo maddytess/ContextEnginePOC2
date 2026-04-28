@@ -1,0 +1,75 @@
+{
+  "tool_id": "aws.describe_public_ingress_surface",
+  "name": "AWS Public Ingress Surface Scan",
+  "tool_class": "inventory_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "aws",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Scan for AWS resources directly or indirectly reachable from the internet \u2014 security groups, EC2, RDS, S3, ELB, Lambda URLs, EKS, OpenSearch, and VPC flow log status.",
+  "auth": null,
+  "output_schema_ref": "schemas/network_exposure_finding.yaml",
+  "cacheable": false,
+  "resource_types": [
+    "AWS::EC2::Instance",
+    "AWS::EC2::SecurityGroup",
+    "AWS::EC2::VPC",
+    "AWS::RDS::DBInstance",
+    "AWS::S3::Bucket",
+    "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    "AWS::Lambda::Function",
+    "AWS::EKS::Cluster",
+    "AWS::OpenSearchService::Domain"
+  ],
+  "api_calls": [
+    "ec2:DescribeInstances",
+    "ec2:DescribeSecurityGroups",
+    "ec2:DescribeVpcs",
+    "ec2:DescribeFlowLogs",
+    "rds:DescribeDBInstances",
+    "s3:ListBuckets",
+    "s3:GetBucketAcl",
+    "s3:GetBucketPolicy",
+    "elasticloadbalancing:DescribeLoadBalancers",
+    "lambda:ListFunctions",
+    "lambda:GetFunctionUrlConfig",
+    "eks:ListClusters",
+    "eks:DescribeCluster",
+    "es:ListDomainNames",
+    "es:DescribeElasticsearchDomain"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "resource_type",
+        "type": "string",
+        "required": false,
+        "description": "ec2 | rds | all \u2014 default all"
+      },
+      {
+        "name": "region",
+        "type": "string",
+        "required": false,
+        "description": "AWS region or empty for all regions"
+      },
+      {
+        "name": "vpc_ids",
+        "type": "list",
+        "required": false,
+        "description": "restrict scan to specific VPC IDs \u2014 empty for all VPCs"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "AWS profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 45,
+  "version": "0.1.0",
+  "tenant_id": null
+}

@@ -1,0 +1,117 @@
+{
+  "_id": "security.encryption_audit",
+  "_version": "0.1.0",
+  "_created_at": "2024-01-01T00:00:00Z",
+  "_updated_at": "2024-01-01T00:00:00Z",
+  "skill_id": "security.encryption_audit",
+  "display_name": "Encryption Coverage Audit",
+  "client_action_type": "audit_encryption",
+  "owner_agent_id": "domain.security.encryption",
+  "capability_id": "audit_encryption_coverage",
+  "domain": "security",
+  "tier": "basic",
+  "status": "active",
+  "tenant_id": null,
+  "purpose": "Run a comprehensive encryption coverage audit across storage, databases, key management, and network transit for AWS or Azure.",
+  "description": "Audits encryption at rest and in transit. Use for: S3/EBS/RDS/EFS encryption, KMS key rotation, ELB HTTPS enforcement, Azure storage HTTPS-only, managed disk encryption, SQL TDE, PostgreSQL/MySQL SSL, Key Vault configuration, App Service TLS.",
+  "capabilities": [
+    "detect unencrypted S3 buckets and missing HTTPS-only policies",
+    "find EBS volumes and snapshots without encryption, verify default encryption",
+    "check RDS instances for encryption at rest and SSL enforcement",
+    "verify KMS key rotation and detect keys pending deletion",
+    "audit Azure storage, managed disks, SQL TDE, and Key Vault configuration"
+  ],
+  "context_descriptions": [
+    "storage encryption inventory \u2014 S3, EBS, Azure storage account encryption settings",
+    "database encryption inventory \u2014 RDS, SQL TDE, PostgreSQL/MySQL SSL",
+    "key management inventory \u2014 KMS key rotation, Azure Key Vault soft delete and purge protection",
+    "in-transit enforcement \u2014 ELB HTTPS listeners, App Service TLS, S3 bucket policies"
+  ],
+  "context_builder_ids": [
+    "security.encryption_audit_context"
+  ],
+  "tool_ids": [
+    "aws.audit_encryption_coverage",
+    "azure.audit_encryption_coverage"
+  ],
+  "supported_context_types": [
+    "storage_encryption_inventory",
+    "database_encryption_inventory",
+    "key_management_inventory",
+    "account_scope"
+  ],
+  "tool_affinity": {
+    "allowed_tool_classes": [
+      "inventory_read"
+    ],
+    "preferred_tool_tags": [
+      "encryption",
+      "kms",
+      "tls",
+      "https",
+      "s3",
+      "ebs",
+      "rds",
+      "ssl"
+    ],
+    "execution_locations": [
+      "client"
+    ]
+  },
+  "execution_plan": {
+    "steps": [
+      {
+        "step_id": "audit_storage_encryption",
+        "context_type": "storage_encryption_inventory",
+        "tool_class": "inventory_read",
+        "depends_on": [],
+        "required": true,
+        "on_failure": "stop"
+      },
+      {
+        "step_id": "audit_database_encryption",
+        "context_type": "database_encryption_inventory",
+        "tool_class": "inventory_read",
+        "depends_on": [],
+        "required": true,
+        "on_failure": "stop"
+      },
+      {
+        "step_id": "audit_key_management",
+        "context_type": "key_management_inventory",
+        "tool_class": "inventory_read",
+        "depends_on": [
+          "audit_storage_encryption"
+        ],
+        "required": false,
+        "on_failure": "skip"
+      }
+    ],
+    "on_partial_failure": "continue"
+  },
+  "output_type": "finding",
+  "output_schema_ref": "schemas/encryption_finding.yaml",
+  "artifact_effects": {
+    "can_create": [
+      "finding"
+    ],
+    "can_update": [],
+    "can_enrich": [
+      "triage"
+    ]
+  },
+  "action_semantics": {
+    "can_request_execution": false,
+    "can_generate_plan_fragments": true,
+    "can_generate_bundle_hints": false,
+    "can_generate_playbook_candidates": true
+  },
+  "safety": {
+    "safety_class": "advisory",
+    "requires_human_review_for": []
+  },
+  "evidence": {
+    "emits_rationale": true,
+    "emits_confidence": true
+  }
+}

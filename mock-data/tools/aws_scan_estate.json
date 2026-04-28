@@ -1,0 +1,62 @@
+{
+  "tool_id": "aws.scan_estate",
+  "name": "AWS Estate Discovery Scan",
+  "tool_class": "inventory_read",
+  "tool_type": "readonly",
+  "domain": [
+    "operations"
+  ],
+  "provider": "aws",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Trigger a full or incremental AWS estate discovery scan to refresh the local Context Manager resource inventory.",
+  "auth": null,
+  "output_schema_ref": "schemas/scan_status.yaml",
+  "cacheable": false,
+  "resource_types": [
+    "AWS::EC2::Instance",
+    "AWS::EC2::VPC",
+    "AWS::S3::Bucket",
+    "AWS::RDS::DBInstance",
+    "AWS::Lambda::Function",
+    "AWS::IAM::Role",
+    "AWS::EKS::Cluster",
+    "AWS::ELB::LoadBalancer"
+  ],
+  "api_calls": [
+    "ec2:DescribeInstances",
+    "ec2:DescribeVpcs",
+    "ec2:DescribeSubnets",
+    "s3:ListBuckets",
+    "rds:DescribeDBInstances",
+    "lambda:ListFunctions",
+    "iam:ListRoles",
+    "eks:ListClusters",
+    "elasticloadbalancing:DescribeLoadBalancers"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "scope",
+        "type": "string",
+        "required": false,
+        "description": "all | specific service e.g. ec2, s3, rds \u2014 default all"
+      },
+      {
+        "name": "regions",
+        "type": "string",
+        "required": false,
+        "description": "comma-separated AWS regions or empty for all regions"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "AWS profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 60,
+  "version": "0.1.0",
+  "tenant_id": null
+}

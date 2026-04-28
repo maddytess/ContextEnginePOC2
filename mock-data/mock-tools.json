@@ -1,0 +1,835 @@
+[
+  {
+    "tool_id":           "aws.query_cost_explorer",
+    "name":              "AWS Cost Explorer Query",
+    "tool_class":        "billing_read",
+    "tool_type":         "readonly",
+    "domain":            ["billing"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Query AWS Cost Explorer for cost and usage data by time range, service, region, granularity, and cost metric.",
+    "auth":              null,
+    "output_schema_ref": "schemas/cost_report.yaml",
+    "cacheable":         true,
+    "resource_types":    ["AWS::CostExplorer::CostAndUsage"],
+    "api_calls":         ["ce:GetCostAndUsage", "ce:GetCostAndUsageForecast"],
+    "input_schema": {
+      "parameters": [
+        {"name": "metric",      "type": "string",  "required": true,  "description": "AmortizedCost | UnblendedCost | BlendedCost — default AmortizedCost"},
+        {"name": "service",     "type": "string",  "required": false, "description": "full AWS service name e.g. 'Amazon EC2' — empty for all services"},
+        {"name": "granularity", "type": "string",  "required": true,  "description": "MONTHLY | DAILY | HOURLY — default MONTHLY"},
+        {"name": "account-id",  "type": "string",  "required": false, "description": "AWS account ID or empty"},
+        {"name": "start",       "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to 30 days ago"},
+        {"name": "end",         "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to today"},
+        {"name": "tag",         "type": "string",  "required": false, "description": "cost allocation tag filter or empty"},
+        {"name": "region",      "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles",    "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 30,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.query_cost_management",
+    "name":              "Azure Cost Management Query",
+    "tool_class":        "billing_read",
+    "tool_type":         "readonly",
+    "domain":            ["billing"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Query Azure Cost Management for cost and usage data by time range, service, granularity, and cost metric.",
+    "auth":              null,
+    "output_schema_ref": "schemas/cost_report.yaml",
+    "cacheable":         true,
+    "resource_types":    ["Microsoft.CostManagement/query"],
+    "api_calls":         ["Microsoft.CostManagement/query/action"],
+    "input_schema": {
+      "parameters": [
+        {"name": "metric",        "type": "string",  "required": true,  "description": "ActualCost | AmortizedCost — default ActualCost"},
+        {"name": "service",       "type": "string",  "required": false, "description": "Azure service name or empty for all services"},
+        {"name": "granularity",   "type": "string",  "required": true,  "description": "Monthly | Daily — default Monthly"},
+        {"name": "subscriptions", "type": "string",  "required": false, "description": "Azure subscription name or empty"},
+        {"name": "start",         "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to 30 days ago"},
+        {"name": "end",           "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to today"},
+        {"name": "profiles",      "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 30,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.query_cloudwatch_metrics",
+    "name":              "AWS CloudWatch Metrics Query",
+    "tool_class":        "metrics_read",
+    "tool_type":         "readonly",
+    "domain":            ["operations"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Query AWS CloudWatch for infrastructure metrics — CPU, memory, disk, network — with dimension and threshold filtering.",
+    "auth":              null,
+    "output_schema_ref": "schemas/metric_report.yaml",
+    "cacheable":         false,
+    "resource_types":    ["AWS::CloudWatch::Metric"],
+    "api_calls":         ["cloudwatch:GetMetricStatistics", "cloudwatch:ListMetrics", "cloudwatch:DescribeAlarms"],
+    "input_schema": {
+      "parameters": [
+        {"name": "metric_namespace", "type": "string",  "required": true,  "description": "CloudWatch namespace e.g. AWS/EC2, AWS/RDS, AWS/Lambda"},
+        {"name": "metric_name",      "type": "string",  "required": true,  "description": "CloudWatch metric e.g. CPUUtilization, FreeStorageSpace, Errors"},
+        {"name": "resource_id",      "type": "string",  "required": false, "description": "specific instance ID, DB identifier, or resource name — empty for all"},
+        {"name": "period",           "type": "integer", "required": true,  "description": "aggregation period in seconds e.g. 3600 for 1h, 86400 for 1d — default 3600"},
+        {"name": "stats",            "type": "string",  "required": true,  "description": "Average | Maximum | Sum — default Average"},
+        {"name": "threshold",        "type": "string",  "required": false, "description": "threshold condition e.g. >80, <20 — empty if no threshold"},
+        {"name": "start",            "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to 24h ago"},
+        {"name": "end",              "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to today"},
+        {"name": "region",           "type": "string",  "required": false, "description": "AWS region or empty for default region"},
+        {"name": "profiles",         "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 30,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.query_monitor_metrics",
+    "name":              "Azure Monitor Metrics Query",
+    "tool_class":        "metrics_read",
+    "tool_type":         "readonly",
+    "domain":            ["operations"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Query Azure Monitor for infrastructure metrics with resource, aggregation, and threshold filtering.",
+    "auth":              null,
+    "output_schema_ref": "schemas/metric_report.yaml",
+    "cacheable":         false,
+    "resource_types":    ["Microsoft.Monitor/metrics"],
+    "api_calls":         ["Microsoft.Insights/metrics/read", "Microsoft.Insights/metricDefinitions/read"],
+    "input_schema": {
+      "parameters": [
+        {"name": "service",        "type": "string",  "required": true,  "description": "Azure resource type e.g. vm, sql, functions, aks"},
+        {"name": "resource-group", "type": "string",  "required": false, "description": "Azure resource group name or empty"},
+        {"name": "metric",         "type": "string",  "required": true,  "description": "Azure metric name e.g. Percentage CPU, Available Memory Bytes"},
+        {"name": "resource",       "type": "string",  "required": false, "description": "specific resource name or empty for all in group"},
+        {"name": "aggregation",    "type": "string",  "required": true,  "description": "Average | Maximum — default Average"},
+        {"name": "duration",       "type": "string",  "required": true,  "description": "time window e.g. 24h, 7d — default 24h"},
+        {"name": "threshold",      "type": "string",  "required": false, "description": "threshold condition e.g. >80 — empty if no threshold"},
+        {"name": "subscription",   "type": "string",  "required": false, "description": "Azure subscription name or empty"},
+        {"name": "profiles",       "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 30,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.query_cloudtrail_events",
+    "name":              "AWS CloudTrail Event Query",
+    "tool_class":        "audit_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Query AWS CloudTrail for historical API events — who did what, when, and from where — with actor, resource, time, and error-code filtering.",
+    "auth":              null,
+    "output_schema_ref": "schemas/audit_event_report.yaml",
+    "cacheable":         false,
+    "resource_types":    ["AWS::CloudTrail::Trail"],
+    "api_calls":         ["cloudtrail:LookupEvents", "cloudtrail:GetTrailStatus"],
+    "input_schema": {
+      "parameters": [
+        {"name": "event_source",   "type": "string",  "required": false, "description": "AWS service source e.g. ec2.amazonaws.com, s3.amazonaws.com — empty for any service"},
+        {"name": "event_name",     "type": "string",  "required": false, "description": "CloudTrail API event name e.g. StopInstances, DeleteBucket — ONE event per step"},
+        {"name": "user",           "type": "string",  "required": false, "description": "IAM username or ARN who performed the action — empty for any user"},
+        {"name": "start",          "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to 30 days ago"},
+        {"name": "end",            "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to today"},
+        {"name": "region",         "type": "string",  "required": false, "description": "AWS region — empty for all regions"},
+        {"name": "resource_name",  "type": "string",  "required": false, "description": "specific resource name to filter events — empty for all"},
+        {"name": "resource_type",  "type": "string",  "required": false, "description": "resource type e.g. AWS::EC2::Instance — empty for all"},
+        {"name": "ip",             "type": "string",  "required": false, "description": "source IP address filter — empty for all IPs"},
+        {"name": "error_code",     "type": "string",  "required": false, "description": "error code for failed events e.g. AccessDenied — empty for all"},
+        {"name": "profiles",       "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 30,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.query_activity_log",
+    "name":              "Azure Activity Log Query",
+    "tool_class":        "audit_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Query Azure Activity Log for resource operation history — who did what, when, with resource provider and subscription scoping.",
+    "auth":              null,
+    "output_schema_ref": "schemas/audit_event_report.yaml",
+    "cacheable":         false,
+    "resource_types":    ["Microsoft.Insights/ActivityLog"],
+    "api_calls":         ["Microsoft.Insights/eventtypes/values/read"],
+    "input_schema": {
+      "parameters": [
+        {"name": "resource_providers", "type": "string",  "required": false, "description": "Azure resource provider e.g. Microsoft.Compute — empty for all"},
+        {"name": "operation_name",     "type": "string",  "required": false, "description": "operation type e.g. write, delete, action — empty for all"},
+        {"name": "caller",             "type": "string",  "required": false, "description": "user or service principal who performed the action — empty for all"},
+        {"name": "resource_group",     "type": "string",  "required": false, "description": "Azure resource group name — empty for all"},
+        {"name": "start_time",         "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to 30 days ago"},
+        {"name": "end_time",           "type": "string",  "required": true,  "description": "YYYY-MM-DD — derive from query or default to today"},
+        {"name": "status",             "type": "string",  "required": false, "description": "operation status e.g. Failed, Succeeded — empty for all"},
+        {"name": "correlation_id",     "type": "string",  "required": false, "description": "correlation ID for tracing a specific operation — empty for none"},
+        {"name": "subscription",       "type": "string",  "required": false, "description": "Azure subscription name or empty"},
+        {"name": "profiles",           "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 30,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.scan_estate",
+    "name":              "AWS Estate Discovery Scan",
+    "tool_class":        "inventory_read",
+    "tool_type":         "readonly",
+    "domain":            ["operations"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Trigger a full or incremental AWS estate discovery scan to refresh the local Context Manager resource inventory.",
+    "auth":              null,
+    "output_schema_ref": "schemas/scan_status.yaml",
+    "cacheable":         false,
+    "resource_types":    [
+      "AWS::EC2::Instance", "AWS::EC2::VPC", "AWS::S3::Bucket",
+      "AWS::RDS::DBInstance", "AWS::Lambda::Function", "AWS::IAM::Role",
+      "AWS::EKS::Cluster", "AWS::ELB::LoadBalancer"
+    ],
+    "api_calls":         [
+      "ec2:DescribeInstances", "ec2:DescribeVpcs", "ec2:DescribeSubnets",
+      "s3:ListBuckets", "rds:DescribeDBInstances", "lambda:ListFunctions",
+      "iam:ListRoles", "eks:ListClusters", "elasticloadbalancing:DescribeLoadBalancers"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all | specific service e.g. ec2, s3, rds — default all"},
+        {"name": "regions",  "type": "string",  "required": false, "description": "comma-separated AWS regions or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.run_soc2_audit",
+    "name":              "AWS SOC 2 Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate AWS infrastructure against SOC 2 Trust Service Criteria and return a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::IAM::User", "AWS::IAM::Role", "AWS::CloudTrail::Trail",
+      "AWS::Config::ConfigurationRecorder", "AWS::CloudWatch::Alarm",
+      "AWS::EC2::SecurityGroup", "AWS::S3::Bucket", "AWS::KMS::Key"
+    ],
+    "api_calls":         [
+      "iam:ListUsers", "iam:GetAccountPasswordPolicy", "cloudtrail:DescribeTrails",
+      "config:DescribeConfigurationRecorders", "cloudwatch:DescribeAlarms",
+      "ec2:DescribeSecurityGroups", "s3:GetBucketEncryption", "kms:ListKeys"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.run_soc2_audit",
+    "name":              "Azure SOC 2 Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate Azure infrastructure against SOC 2 Trust Service Criteria and return a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Authorization/roleAssignments", "Microsoft.KeyVault/vaults",
+      "Microsoft.Security/securityContacts", "Microsoft.Storage/storageAccounts",
+      "Microsoft.Insights/diagnosticSettings"
+    ],
+    "api_calls":         [
+      "Microsoft.Authorization/roleAssignments/read", "Microsoft.KeyVault/vaults/read",
+      "Microsoft.Security/securityContacts/read", "Microsoft.Storage/storageAccounts/read",
+      "Microsoft.Insights/diagnosticSettings/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.run_iso27001_audit",
+    "name":              "AWS ISO 27001 Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate AWS infrastructure against ISO 27001 Annex A information security controls and return a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::IAM::User", "AWS::IAM::Role", "AWS::CloudTrail::Trail",
+      "AWS::EC2::SecurityGroup", "AWS::S3::Bucket", "AWS::KMS::Key",
+      "AWS::RDS::DBInstance", "AWS::GuardDuty::Detector"
+    ],
+    "api_calls":         [
+      "iam:ListUsers", "iam:GetAccountPasswordPolicy", "cloudtrail:DescribeTrails",
+      "ec2:DescribeSecurityGroups", "s3:GetBucketEncryption", "kms:ListKeys",
+      "rds:DescribeDBInstances", "guardduty:ListDetectors"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.run_iso27001_audit",
+    "name":              "Azure ISO 27001 Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate Azure infrastructure against ISO 27001 Annex A information security requirements and return a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Authorization/roleAssignments", "Microsoft.KeyVault/vaults",
+      "Microsoft.Security/securityContacts", "Microsoft.Storage/storageAccounts",
+      "Microsoft.Sql/servers", "Microsoft.Insights/diagnosticSettings"
+    ],
+    "api_calls":         [
+      "Microsoft.Authorization/roleAssignments/read", "Microsoft.KeyVault/vaults/read",
+      "Microsoft.Security/securityContacts/read", "Microsoft.Storage/storageAccounts/read",
+      "Microsoft.Sql/servers/read", "Microsoft.Insights/diagnosticSettings/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.run_hipaa_audit",
+    "name":              "AWS HIPAA Security Rule Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate AWS infrastructure against HIPAA Security Rule safeguards for PHI data protection and return a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::IAM::User", "AWS::S3::Bucket", "AWS::RDS::DBInstance",
+      "AWS::KMS::Key", "AWS::CloudTrail::Trail", "AWS::EC2::SecurityGroup",
+      "AWS::CloudWatch::LogGroup"
+    ],
+    "api_calls":         [
+      "iam:ListUsers", "s3:GetBucketEncryption", "rds:DescribeDBInstances",
+      "kms:ListKeys", "cloudtrail:DescribeTrails", "ec2:DescribeSecurityGroups",
+      "logs:DescribeLogGroups"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.run_hipaa_audit",
+    "name":              "Azure HIPAA Security Rule Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate Azure infrastructure against HIPAA Security Rule PHI data protection requirements and return a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Storage/storageAccounts", "Microsoft.Sql/servers",
+      "Microsoft.KeyVault/vaults", "Microsoft.Authorization/roleAssignments",
+      "Microsoft.Insights/diagnosticSettings"
+    ],
+    "api_calls":         [
+      "Microsoft.Storage/storageAccounts/read", "Microsoft.Sql/servers/read",
+      "Microsoft.KeyVault/vaults/read", "Microsoft.Authorization/roleAssignments/read",
+      "Microsoft.Insights/diagnosticSettings/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.run_gdpr_audit",
+    "name":              "AWS GDPR Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate AWS infrastructure against GDPR data protection requirements for personal data and privacy, returning a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::S3::Bucket", "AWS::RDS::DBInstance", "AWS::KMS::Key",
+      "AWS::IAM::Role", "AWS::CloudTrail::Trail", "AWS::CloudWatch::LogGroup"
+    ],
+    "api_calls":         [
+      "s3:GetBucketEncryption", "s3:GetBucketLogging", "rds:DescribeDBInstances",
+      "kms:ListKeys", "iam:ListRoles", "cloudtrail:DescribeTrails", "logs:DescribeLogGroups"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.run_gdpr_audit",
+    "name":              "Azure GDPR Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate Azure infrastructure against GDPR data protection and privacy requirements, returning a structured compliance report.",
+    "auth":              null,
+    "output_schema_ref": "schemas/compliance_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Storage/storageAccounts", "Microsoft.Sql/servers",
+      "Microsoft.KeyVault/vaults", "Microsoft.Insights/diagnosticSettings",
+      "Microsoft.Authorization/roleAssignments"
+    ],
+    "api_calls":         [
+      "Microsoft.Storage/storageAccounts/read", "Microsoft.Sql/servers/read",
+      "Microsoft.KeyVault/vaults/read", "Microsoft.Insights/diagnosticSettings/read",
+      "Microsoft.Authorization/roleAssignments/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full account audit"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.analyze_iam_access_paths",
+    "name":              "AWS IAM Access Path Analyzer",
+    "tool_class":        "iam_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Map IAM role trust relationships, assume-role reachability, privilege escalation paths, and cross-account access risks.",
+    "auth":              null,
+    "output_schema_ref": "schemas/iam_access_path_finding.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::IAM::Role", "AWS::IAM::Policy", "AWS::IAM::User",
+      "AWS::STS::AssumedRole"
+    ],
+    "api_calls":         [
+      "iam:ListRoles", "iam:GetRole", "iam:ListAttachedRolePolicies",
+      "iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListRolePolicies",
+      "iam:GetRolePolicy", "iam:SimulatePrincipalPolicy"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "source_arn",      "type": "string",  "required": false, "description": "source IAM principal ARN to trace from — empty to analyze all"},
+        {"name": "target_resource", "type": "string",  "required": false, "description": "target resource ARN to check reachability to — empty for full graph"},
+        {"name": "profiles",        "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 45,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.analyze_rbac_paths",
+    "name":              "Azure RBAC Privilege Path Analyzer",
+    "tool_class":        "iam_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Analyze Azure RBAC role assignments, managed identity bindings, and privilege escalation vectors.",
+    "auth":              null,
+    "output_schema_ref": "schemas/iam_access_path_finding.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Authorization/roleAssignments", "Microsoft.Authorization/roleDefinitions",
+      "Microsoft.ManagedIdentity/userAssignedIdentities"
+    ],
+    "api_calls":         [
+      "Microsoft.Authorization/roleAssignments/read",
+      "Microsoft.Authorization/roleDefinitions/read",
+      "Microsoft.ManagedIdentity/userAssignedIdentities/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "source_arn",    "type": "string",  "required": false, "description": "source principal or managed identity to trace from — empty for all"},
+        {"name": "subscription",  "type": "string",  "required": false, "description": "Azure subscription name or empty"},
+        {"name": "profiles",      "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 45,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.audit_iam_security",
+    "name":              "AWS IAM Security Audit",
+    "tool_class":        "iam_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Audit IAM for security misconfigurations — MFA enforcement, stale access keys, inactive users, wildcard policies, and overly broad trust relationships.",
+    "auth":              null,
+    "output_schema_ref": "schemas/iam_security_finding.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::IAM::User", "AWS::IAM::Role", "AWS::IAM::Policy",
+      "AWS::IAM::AccessKey", "AWS::IAM::MFADevice"
+    ],
+    "api_calls":         [
+      "iam:ListUsers", "iam:GetLoginProfile", "iam:ListMFADevices",
+      "iam:ListAccessKeys", "iam:GetAccessKeyLastUsed", "iam:ListRoles",
+      "iam:ListPolicies", "iam:GetPolicyVersion", "iam:GetAccountPasswordPolicy",
+      "iam:GetAccountSummary"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full IAM audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty (IAM is global)"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.audit_rbac_security",
+    "name":              "Azure RBAC Security Audit",
+    "tool_class":        "iam_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Audit Azure RBAC assignments, managed identities, and Key Vault access policies for security misconfigurations.",
+    "auth":              null,
+    "output_schema_ref": "schemas/iam_security_finding.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Authorization/roleAssignments", "Microsoft.Authorization/roleDefinitions",
+      "Microsoft.ManagedIdentity/userAssignedIdentities", "Microsoft.KeyVault/vaults"
+    ],
+    "api_calls":         [
+      "Microsoft.Authorization/roleAssignments/read",
+      "Microsoft.Authorization/roleDefinitions/read",
+      "Microsoft.ManagedIdentity/userAssignedIdentities/read",
+      "Microsoft.KeyVault/vaults/read", "Microsoft.KeyVault/vaults/accessPolicies/write"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full RBAC audit"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.audit_encryption_coverage",
+    "name":              "AWS Encryption Coverage Audit",
+    "tool_class":        "inventory_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Audit encryption at rest and in transit across S3, EBS, RDS, EFS, KMS, and ELB HTTPS enforcement.",
+    "auth":              null,
+    "output_schema_ref": "schemas/encryption_finding.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::S3::Bucket", "AWS::EC2::Volume", "AWS::RDS::DBInstance",
+      "AWS::EFS::FileSystem", "AWS::KMS::Key", "AWS::ElasticLoadBalancingV2::Listener"
+    ],
+    "api_calls":         [
+      "s3:GetBucketEncryption", "s3:GetBucketPolicy", "ec2:DescribeVolumes",
+      "rds:DescribeDBInstances", "efs:DescribeFileSystems", "kms:ListKeys",
+      "kms:DescribeKey", "elasticloadbalancing:DescribeListeners"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full encryption audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 45,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.audit_encryption_coverage",
+    "name":              "Azure Encryption Coverage Audit",
+    "tool_class":        "inventory_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Audit encryption at rest and in transit across Azure Storage, managed disks, SQL TDE, PostgreSQL/MySQL SSL, and Key Vault.",
+    "auth":              null,
+    "output_schema_ref": "schemas/encryption_finding.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "Microsoft.Storage/storageAccounts", "Microsoft.Compute/disks",
+      "Microsoft.Sql/servers", "Microsoft.DBforPostgreSQL/servers",
+      "Microsoft.DBforMySQL/servers", "Microsoft.KeyVault/vaults",
+      "Microsoft.Web/sites"
+    ],
+    "api_calls":         [
+      "Microsoft.Storage/storageAccounts/read", "Microsoft.Compute/disks/read",
+      "Microsoft.Sql/servers/read", "Microsoft.Sql/servers/databases/transparentDataEncryption/read",
+      "Microsoft.DBforPostgreSQL/servers/read", "Microsoft.DBforMySQL/servers/read",
+      "Microsoft.KeyVault/vaults/read", "Microsoft.Web/sites/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full encryption audit"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 45,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.run_pci_dss_audit",
+    "name":              "AWS PCI-DSS v4.0 Compliance Audit",
+    "tool_class":        "compliance_read",
+    "tool_type":         "readonly",
+    "domain":            ["compliance"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Evaluate AWS against PCI-DSS v4.0 covering network security, cardholder data protection, access control, logging, and vulnerability management.",
+    "auth":              null,
+    "output_schema_ref": "schemas/pci_dss_report.yaml",
+    "cacheable":         true,
+    "resource_types":    [
+      "AWS::EC2::SecurityGroup", "AWS::EC2::NetworkAcl", "AWS::EC2::VPC",
+      "AWS::S3::Bucket", "AWS::KMS::Key", "AWS::IAM::User",
+      "AWS::CloudTrail::Trail", "AWS::GuardDuty::Detector",
+      "AWS::WAFv2::WebACL", "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    ],
+    "api_calls":         [
+      "ec2:DescribeSecurityGroups", "ec2:DescribeNetworkAcls", "ec2:DescribeVpcs",
+      "s3:GetBucketEncryption", "kms:ListKeys", "iam:ListUsers",
+      "iam:GetAccountPasswordPolicy", "cloudtrail:DescribeTrails",
+      "guardduty:ListDetectors", "wafv2:ListWebACLs",
+      "elasticloadbalancing:DescribeLoadBalancers"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "scope",    "type": "string",  "required": false, "description": "all — full PCI-DSS audit"},
+        {"name": "region",   "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "profiles", "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 60,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "aws.describe_public_ingress_surface",
+    "name":              "AWS Public Ingress Surface Scan",
+    "tool_class":        "inventory_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "aws",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Scan for AWS resources directly or indirectly reachable from the internet — security groups, EC2, RDS, S3, ELB, Lambda URLs, EKS, OpenSearch, and VPC flow log status.",
+    "auth":              null,
+    "output_schema_ref": "schemas/network_exposure_finding.yaml",
+    "cacheable":         false,
+    "resource_types":    [
+      "AWS::EC2::Instance", "AWS::EC2::SecurityGroup", "AWS::EC2::VPC",
+      "AWS::RDS::DBInstance", "AWS::S3::Bucket",
+      "AWS::ElasticLoadBalancingV2::LoadBalancer", "AWS::Lambda::Function",
+      "AWS::EKS::Cluster", "AWS::OpenSearchService::Domain"
+    ],
+    "api_calls":         [
+      "ec2:DescribeInstances", "ec2:DescribeSecurityGroups", "ec2:DescribeVpcs",
+      "ec2:DescribeFlowLogs", "rds:DescribeDBInstances", "s3:ListBuckets",
+      "s3:GetBucketAcl", "s3:GetBucketPolicy",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "lambda:ListFunctions", "lambda:GetFunctionUrlConfig",
+      "eks:ListClusters", "eks:DescribeCluster",
+      "es:ListDomainNames", "es:DescribeElasticsearchDomain"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "resource_type", "type": "string",  "required": false, "description": "ec2 | rds | all — default all"},
+        {"name": "region",        "type": "string",  "required": false, "description": "AWS region or empty for all regions"},
+        {"name": "vpc_ids",       "type": "list",    "required": false, "description": "restrict scan to specific VPC IDs — empty for all VPCs"},
+        {"name": "profiles",      "type": "string",  "required": true,  "description": "AWS profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 45,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  },
+
+  {
+    "tool_id":           "azure.describe_public_ingress_surface",
+    "name":              "Azure Public Ingress Surface Scan",
+    "tool_class":        "inventory_read",
+    "tool_type":         "readonly",
+    "domain":            ["security"],
+    "provider":          "azure",
+    "execution_location":"client",
+    "safety_class":      "read_only",
+    "purpose":           "Scan for Azure resources reachable from the internet — VMs, NSGs, PaaS services, AKS, and storage public access settings.",
+    "auth":              null,
+    "output_schema_ref": "schemas/network_exposure_finding.yaml",
+    "cacheable":         false,
+    "resource_types":    [
+      "Microsoft.Compute/virtualMachines", "Microsoft.Network/networkSecurityGroups",
+      "Microsoft.Network/publicIPAddresses", "Microsoft.Storage/storageAccounts",
+      "Microsoft.ContainerService/managedClusters", "Microsoft.Network/applicationGateways",
+      "Microsoft.Web/sites"
+    ],
+    "api_calls":         [
+      "Microsoft.Compute/virtualMachines/read",
+      "Microsoft.Network/networkSecurityGroups/read",
+      "Microsoft.Network/publicIPAddresses/read",
+      "Microsoft.Storage/storageAccounts/read",
+      "Microsoft.ContainerService/managedClusters/read",
+      "Microsoft.Network/applicationGateways/read",
+      "Microsoft.Web/sites/read"
+    ],
+    "input_schema": {
+      "parameters": [
+        {"name": "resource_type", "type": "string",  "required": false, "description": "vm | aks | all — default all"},
+        {"name": "profiles",      "type": "string",  "required": true,  "description": "Azure profile name from Cloud Profile context"}
+      ]
+    },
+    "execution_timeout": 45,
+    "version":           "0.1.0",
+    "tenant_id":         null
+  }
+]

@@ -1,0 +1,51 @@
+{
+  "tool_id": "azure.run_iso27001_audit",
+  "name": "Azure ISO 27001 Compliance Audit",
+  "tool_class": "compliance_read",
+  "tool_type": "readonly",
+  "domain": [
+    "compliance"
+  ],
+  "provider": "azure",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Evaluate Azure infrastructure against ISO 27001 Annex A information security requirements and return a structured compliance report.",
+  "auth": null,
+  "output_schema_ref": "schemas/compliance_report.yaml",
+  "cacheable": true,
+  "resource_types": [
+    "Microsoft.Authorization/roleAssignments",
+    "Microsoft.KeyVault/vaults",
+    "Microsoft.Security/securityContacts",
+    "Microsoft.Storage/storageAccounts",
+    "Microsoft.Sql/servers",
+    "Microsoft.Insights/diagnosticSettings"
+  ],
+  "api_calls": [
+    "Microsoft.Authorization/roleAssignments/read",
+    "Microsoft.KeyVault/vaults/read",
+    "Microsoft.Security/securityContacts/read",
+    "Microsoft.Storage/storageAccounts/read",
+    "Microsoft.Sql/servers/read",
+    "Microsoft.Insights/diagnosticSettings/read"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "scope",
+        "type": "string",
+        "required": false,
+        "description": "all \u2014 full account audit"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "Azure profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 60,
+  "version": "0.1.0",
+  "tenant_id": null
+}

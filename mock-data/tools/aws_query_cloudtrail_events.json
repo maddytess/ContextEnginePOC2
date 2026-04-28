@@ -1,0 +1,96 @@
+{
+  "tool_id": "aws.query_cloudtrail_events",
+  "name": "AWS CloudTrail Event Query",
+  "tool_class": "audit_read",
+  "tool_type": "readonly",
+  "domain": [
+    "security"
+  ],
+  "provider": "aws",
+  "execution_location": "client",
+  "safety_class": "read_only",
+  "purpose": "Query AWS CloudTrail for historical API events \u2014 who did what, when, and from where \u2014 with actor, resource, time, and error-code filtering.",
+  "auth": null,
+  "output_schema_ref": "schemas/audit_event_report.yaml",
+  "cacheable": false,
+  "resource_types": [
+    "AWS::CloudTrail::Trail"
+  ],
+  "api_calls": [
+    "cloudtrail:LookupEvents",
+    "cloudtrail:GetTrailStatus"
+  ],
+  "input_schema": {
+    "parameters": [
+      {
+        "name": "event_source",
+        "type": "string",
+        "required": false,
+        "description": "AWS service source e.g. ec2.amazonaws.com, s3.amazonaws.com \u2014 empty for any service"
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "required": false,
+        "description": "CloudTrail API event name e.g. StopInstances, DeleteBucket \u2014 ONE event per step"
+      },
+      {
+        "name": "user",
+        "type": "string",
+        "required": false,
+        "description": "IAM username or ARN who performed the action \u2014 empty for any user"
+      },
+      {
+        "name": "start",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to 30 days ago"
+      },
+      {
+        "name": "end",
+        "type": "string",
+        "required": true,
+        "description": "YYYY-MM-DD \u2014 derive from query or default to today"
+      },
+      {
+        "name": "region",
+        "type": "string",
+        "required": false,
+        "description": "AWS region \u2014 empty for all regions"
+      },
+      {
+        "name": "resource_name",
+        "type": "string",
+        "required": false,
+        "description": "specific resource name to filter events \u2014 empty for all"
+      },
+      {
+        "name": "resource_type",
+        "type": "string",
+        "required": false,
+        "description": "resource type e.g. AWS::EC2::Instance \u2014 empty for all"
+      },
+      {
+        "name": "ip",
+        "type": "string",
+        "required": false,
+        "description": "source IP address filter \u2014 empty for all IPs"
+      },
+      {
+        "name": "error_code",
+        "type": "string",
+        "required": false,
+        "description": "error code for failed events e.g. AccessDenied \u2014 empty for all"
+      },
+      {
+        "name": "profiles",
+        "type": "string",
+        "required": true,
+        "description": "AWS profile name from Cloud Profile context"
+      }
+    ]
+  },
+  "execution_timeout": 30,
+  "version": "0.1.0",
+  "tenant_id": null
+}
