@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import yaml
@@ -35,15 +36,13 @@ def _load_skills(root: Path, manifest: AgentManifest) -> list[SkillManifestYaml]
 
     for skill_id in skill_ids:
         skill_name = skill_id.split(".")[-1]
-        skill_path = _find_skill_yaml(skills_dir, skill_id, skill_name)
+        skill_path = _find_skill_manifest(skills_dir, skill_id, skill_name)
         if skill_path is None:
             raise FileNotFoundError(
-                f"skill.yaml not found for skill_id={skill_id!r}. "
-                f"Looked in: {skills_dir / skill_name}/skill.yaml and {skills_dir / skill_id}/skill.yaml"
+                f"skill manifest not found for skill_id={skill_id!r}. "
+                f"Looked for skill.json and skill.yaml under {skills_dir / skill_name} and {skills_dir / skill_id}"
             )
-        with open(skill_path) as f:
-            skill_data = yaml.safe_load(f)
-        skills.append(SkillManifestYaml.model_validate(skill_data))
+        skills.append(SkillManifestYaml.model_validate(_load_file(skill_path)))
 
     return skills
 
@@ -52,11 +51,8 @@ def _load_tools(root: Path) -> list[ToolManifestYaml]:
     tools_dir = root / "tools"
     if not tools_dir.is_dir():
         return []
-    tools: list[ToolManifestYaml] = []
-    for path in sorted(tools_dir.glob("*.yaml")):
-        with open(path) as f:
-            tools.append(ToolManifestYaml.model_validate(yaml.safe_load(f)))
-    return tools
+    paths = sorted(tools_dir.glob("*.json")) or sorted(tools_dir.glob("*.yaml"))
+    return [ToolManifestYaml.model_validate(_load_file(p)) for p in paths]
 
 
 def _load_context_builders(root: Path) -> list[ContextBuilderManifestYaml]:
@@ -65,13 +61,21 @@ def _load_context_builders(root: Path) -> list[ContextBuilderManifestYaml]:
         return []
     cbs: list[ContextBuilderManifestYaml] = []
     for path in sorted(cb_dir.glob("*.yaml")):
-        with open(path) as f:
-            cbs.append(ContextBuilderManifestYaml.model_validate(yaml.safe_load(f)))
+        cbs.append(ContextBuilderManifestYaml.model_validate(_load_file(path)))
     return cbs
 
 
-def _find_skill_yaml(skills_dir: Path, skill_id: str, skill_name: str) -> Path | None:
-    for path in [skills_dir / skill_name / "skill.yaml", skills_dir / skill_id / "skill.yaml"]:
-        if path.exists():
-            return path
+def _find_skill_manifest(skills_dir: Path, skill_id: str, skill_name: str) -> Path | None:
+    for base in [skills_dir / skill_name, skills_dir / skill_id]:
+        for ext in (".json", ".yaml"):
+            p = base / f"skill{ext}"
+            if p.exists():
+                return p
     return None
+
+
+def _load_file(path: Path) -> dict:
+    with open(path) as f:
+        if path.suffix == ".json":
+            return json.load(f)
+        return yaml.safe_load(f)
